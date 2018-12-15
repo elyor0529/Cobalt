@@ -5,8 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Entity.fs" />
-    <Compile Include="App.fs" />
+    <Compile Include="Repository.fs" />
+    <Compile Include="Entities.fs" />
   </ItemGroup>
 
 </Project>
