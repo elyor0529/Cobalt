@@ -5,14 +5,14 @@ open System
 type Color = string
 
 type Tag = {
-    Id: int64
+    mutable Id: int64
     Name: string
     ForegroundColor: Color
     BackgroundColor: Color
 }
 
 type App = {
-    Id: int64
+    mutable Id: int64
     Name: string
     Color: string
     Path: string
@@ -21,27 +21,27 @@ type App = {
 }
 
 type AppUsageStartReason = 
-    | Switch
-    | Start
-    | Resume
-    | MonitorOn
+    | Switch=0L
+    | Start=1L
+    | Resume=2L
+    | MonitorOn=3L
 
 type AppUsageEndReason = 
-    | Switch
-    | Shutdown
-    | Logoff
-    | Suspend
-    | MonitorOff
+    | Switch=0L
+    | Shutdown=1L
+    | Logoff=2L
+    | Suspend=3L
+    | MonitorOff=4L
 
 type AppUsageType = 
-    | Focus
-    | InView
+    | Focus=0L
+    | InView=1L
 
 type AppUsage = {
-    Id: int64
+    mutable Id: int64
     App: App
-    Start: DateTimeOffset
-    End: DateTimeOffset
+    Start: DateTime
+    End: DateTime
     StartReason: AppUsageStartReason
     EndReason: AppUsageEndReason
     UsageType: AppUsageType
@@ -53,20 +53,20 @@ type ReminderAction =
     | Script of string
 
 type Reminder = {
-    Id: int64
+    mutable Id: int64
     Offset: TimeSpan
     Action: ReminderAction
 }
 
 type OnceTimeRange = {
-    Start: DateTimeOffset
-    End: DateTimeOffset
+    Start: DateTime
+    End: DateTime
 }
 
 type RepeatTimeRange =  
-    | Daily
-    | Weekly
-    | Monthly
+    | Daily=0L
+    | Weekly=1L
+    | Monthly=2L
 
 type TimeRange = 
     | Once of OnceTimeRange
@@ -83,7 +83,7 @@ type Monitorable =
     | Tag of Tag
 
 type Alert = {
-    Id: int64
+    mutable Id: int64
     MaxDuration: TimeSpan
     Enabled: bool
     Reminders: IObservable<Reminder>
