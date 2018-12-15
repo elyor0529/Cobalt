@@ -14,7 +14,25 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		WORKFLOW.md = WORKFLOW.md
 	EndProjectSection
 EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Cobalt.Common.Data", "Cobalt.Common.Data\Cobalt.Common.Data.fsproj", "{5F0BBADD-AB7B-4EA9-BDE0-39166CB7BB91}"
+EndProject
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "Cobalt.Common.Util", "Cobalt.Common.Util\Cobalt.Common.Util.fsproj", "{3152C937-0EE6-468F-9307-A349483AE105}"
+EndProject
 Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{5F0BBADD-AB7B-4EA9-BDE0-39166CB7BB91}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5F0BBADD-AB7B-4EA9-BDE0-39166CB7BB91}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5F0BBADD-AB7B-4EA9-BDE0-39166CB7BB91}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5F0BBADD-AB7B-4EA9-BDE0-39166CB7BB91}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3152C937-0EE6-468F-9307-A349483AE105}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3152C937-0EE6-468F-9307-A349483AE105}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3152C937-0EE6-468F-9307-A349483AE105}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3152C937-0EE6-468F-9307-A349483AE105}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
