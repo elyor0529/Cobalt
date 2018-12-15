@@ -2,6 +2,7 @@
 
 open System.Data.SQLite
 open Dapper
+open System.Text
 
 type IDbRepository = 
     abstract member Insert: App -> unit
@@ -22,14 +23,16 @@ type IDbRepository =
     abstract member Delete: Reminder -> unit
     abstract member Delete: Alert -> unit
 
-type AppInsert = {
+type AppObj = {
+    Id: int64
     Name: string
     Color: Color
     Path: string
     Icon: byte[]
 }
 
-type AppUsageInsert = {
+type AppUsageObj = {
+    Id: int64
     AppId: int64
     Start: int64
     End: int64
@@ -38,7 +41,27 @@ type AppUsageInsert = {
     UsageType: int64
 }
 
-type IdDelete<'a> = {
+type ReminderObj = {
+    Id: int64
+    Offset: int64
+    ActionType: int64
+    ActionParam: string
+}
+
+type AlertObj = {
+    Id: int64
+    MaxDuration: int64
+    Enabled: bool
+    ActionType: int64
+    ActionParam: string
+    TimeRangeType: int64
+    TimeRangeParam1: int64
+    TimeRangeParam2: int64
+    EntityType: int64
+    Entity: int64
+}
+
+type IdObj<'a> = {
     Id: 'a
 }
 
@@ -46,23 +69,87 @@ type SQLiteRepository(conn: SQLiteConnection) =
 
     let insert sql o = 
         conn.ExecuteScalar<'a>(sql+"; select last_insert_rowid()", o)
+    let insert2 (tbl:string) (fields:string[]) o = 
+        let sql =
+            StringBuilder()
+                .Append("insert into ")
+                .Append(tbl)
+                .Append(" (")
+                .Append(String.concat "," fields)
+                .Append(") values (")
+                .Append(String.concat "," (fields |> Seq.map (fun x -> "@"+x)))
+                .Append("); select last_insert_rowid();")
+        conn.ExecuteScalar<'a>(sql.ToString(), o)
     let delete tbl id = 
         conn.Execute(sprintf "delete from %s where Id=@Id" tbl, {Id=id})
         |> ignore
     let enumToVal = LanguagePrimitives.EnumToValue 
 
+    let toAppObj (app:App) =
+        {
+            Id=app.Id;
+            Name=app.Name;
+            Color=app.Color;
+            Path=app.Path;
+            Icon=match app.Icon with
+                | null -> null
+                | a -> a.Value
+        }
+    let toAppUsageObj (au:AppUsage) = 
+        {
+            Id=au.Id;
+            AppId = au.App.Id;
+            Start = au.Start.Ticks;
+            End = au.End.Ticks;
+            StartReason = enumToVal au.StartReason;
+            EndReason = enumToVal au.EndReason;
+            UsageType = enumToVal au.UsageType;
+        }
+    let toReminderObj (re: Reminder) = 
+        let (actionType, actionParam) =
+            match re.Action with
+            | ReminderAction.Warn -> (0L, null)
+            | ReminderAction.CustomWarn(s) -> (1L, s)
+            | ReminderAction.Script(s) -> (2L, s)
+        {
+            Id=re.Id;
+            Offset=re.Offset.Ticks;
+            ActionType=actionType;
+            ActionParam=actionParam;
+        }
+    let toAlertObj (a: Alert) = 
+        let (actionType, actionParam) =
+            match a.Action with
+            | RunAction.Message -> (0L, null)
+            | RunAction.CustomMessage(s) -> (1L, s)
+            | RunAction.Script(s) -> (2L, s)
+            | RunAction.Kill -> (3L, null)
+        let (timeRangeType, timeRangeParam1, timeRangeParam2) = 
+            match a.TimeRange with
+            | TimeRange.Once(once) -> (0L, once.Start.Ticks, once.End.Ticks)
+            | TimeRange.Repeat(re) -> (1L, enumToVal re, 0L)
+        let (entityType, entity) =
+            match a.Entity with
+            | Monitorable.App(a) -> (0L, a.Id)
+            | Monitorable.Tag(t) -> (1L, t.Id)
+        {
+            Id=a.Id;
+            MaxDuration=a.MaxDuration.Ticks;
+            Enabled=a.Enabled;
+            ActionType=actionType;
+            ActionParam=actionParam;
+            TimeRangeType=timeRangeType;
+            TimeRangeParam1=timeRangeParam1;
+            TimeRangeParam2=timeRangeParam2;
+            EntityType=entityType;
+            Entity=entity;
+        }
+
     interface IDbRepository with
         member this.Insert(arg: App): unit = 
-            arg.Id <- insert 
-                "insert into App 
-                (Name, Path, Color, Icon) values 
-                (@Name, @Path, @Color, @Icon)"
-                {
-                    Name=arg.Name;
-                    Color=arg.Color;
-                    Path=arg.Path;
-                    Icon=if arg.Icon <> null then arg.Icon.Value else null
-                }
+            arg.Id <- insert2 "App" 
+                [|"Name"; "Path"; "Color"; "Icon"|]
+                (toAppObj arg)
         member this.Insert(arg: Tag): unit = 
             arg.Id <- insert 
                 "insert into Tag 
@@ -74,16 +161,13 @@ type SQLiteRepository(conn: SQLiteConnection) =
                 "insert into AppUsage 
                 (AppId, Start, End, StartReason, EndReason, UsageType) values 
                 (@AppId, @Start, @End, @StartReason, @EndReason, @UsageType)"
-                {
-                    AppId = arg.App.Id;
-                    Start = arg.Start.Ticks;
-                    End = arg.End.Ticks;
-                    StartReason = enumToVal arg.StartReason;
-                    EndReason = enumToVal arg.EndReason;
-                    UsageType = enumToVal arg.UsageType;
-                }
+                (toAppUsageObj arg)
         member this.Insert(arg: Reminder): unit = 
-            raise (System.NotImplementedException())
+            arg.Id <- insert 
+                "insert into AppUsage 
+                (Offset, ActionType, ActionParam) values
+                (@Offset, @ActionType, @ActionParam)"
+                (toReminderObj arg)
         member this.Insert(arg: Alert): unit = 
             raise (System.NotImplementedException())
 
