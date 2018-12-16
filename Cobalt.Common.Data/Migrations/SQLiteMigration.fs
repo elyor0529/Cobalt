@@ -4,6 +4,14 @@ open System.Data.SQLite
 open Dapper
 open System.Text
 open System
+open System.Collections.Generic
+
+type SQLiteForeignKeyDefinition = {
+    key: string
+    fTable: string
+    fKey: string
+    triggers: IDictionary<string, string>
+}
 
 [<AbstractClass>]
 type SQLiteMigration(conn: SQLiteConnection, version) =
@@ -12,9 +20,15 @@ type SQLiteMigration(conn: SQLiteConnection, version) =
     let _table (name: string) (fields: string list) =
         sprintf "create table %s (%s)" name (String.Join(",", fields))
     let _exec (sql: string list) =
-        conn.Execute(String.Join(";", sql)) |> ignore
+        let finalSql = String.Join(";", sql)
+        conn.Execute(finalSql) |> ignore
     let _insert name (flds:string list) =
         sprintf "insert into %s values (%s)" name (String.Join(",", flds))
+    let _keys (s:string list) =
+        sprintf "primary key (%s)" (String.Join(",", s))
+    let _fk fkDef =
+        sprintf " foreign key(%s) references %s(%s) %s " fkDef.key fkDef.fTable fkDef.fKey
+            (String.Join(" ", fkDef.triggers |> Seq.map (fun x-> sprintf "on %s %s" x.Key x.Value)))
 
     member x.exec = _exec
     member x.table = _table
@@ -25,6 +39,8 @@ type SQLiteMigration(conn: SQLiteConnection, version) =
     member x.fldStr n = _fld n "text" ""
     member x.fldBlob n = _fld n "blob" ""
     member x.insert = _insert
+    member x.keys = _keys
+    member x.fk = _fk
 
     abstract member MigrateRun: unit -> unit
     interface IDbMigration with
