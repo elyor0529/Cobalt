@@ -5,6 +5,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Migrations\Migration.fs" />
+    <Compile Include="Migrations\SQLiteMigration.fs" />
+    <Compile Include="Migrations\SQLiteMigrationV1.fs" />
+    <Compile Include="Migrations\SQliteMigrator.fs" />
     <Compile Include="Entities.fs" />
     <Compile Include="Repository.fs" />
   </ItemGroup>

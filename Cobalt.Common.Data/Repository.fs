@@ -3,6 +3,7 @@
 open System.Data.SQLite
 open Dapper
 open System.Text
+open Common.Common.Data.Migrations
 
 type IDbRepository = 
     abstract member Insert: App -> unit
@@ -23,6 +24,7 @@ type IDbRepository =
     abstract member Delete: Reminder -> unit
     abstract member Delete: Alert -> unit
 
+[<CLIMutable>]
 type AppObj = {
     Id: int64
     Name: string
@@ -31,6 +33,7 @@ type AppObj = {
     Icon: byte[]
 }
 
+[<CLIMutable>]
 type AppUsageObj = {
     Id: int64
     AppId: int64
@@ -41,6 +44,7 @@ type AppUsageObj = {
     UsageType: int64
 }
 
+[<CLIMutable>]
 type ReminderObj = {
     Id: int64
     Offset: int64
@@ -48,6 +52,7 @@ type ReminderObj = {
     ActionParam: string
 }
 
+[<CLIMutable>]
 type AlertObj = {
     Id: int64
     MaxDuration: int64
@@ -65,11 +70,11 @@ type IdObj<'a> = {
     Id: 'a
 }
 
-type SQLiteRepository(conn: SQLiteConnection) = 
+type SQLiteRepository(conn: SQLiteConnection, mig: SQLiteMigrator) = 
 
-    let insert sql o = 
-        conn.ExecuteScalar<'a>(sql+"; select last_insert_rowid()", o)
-    let insert2 (tbl:string) (fields:string[]) o = 
+    do (mig :> IDbMigrator).Migrate()
+
+    let insert (tbl:string) (fields:string[]) o = 
         let sql =
             StringBuilder()
                 .Append("insert into ")
@@ -91,7 +96,8 @@ type SQLiteRepository(conn: SQLiteConnection) =
             Name=app.Name;
             Color=app.Color;
             Path=app.Path;
-            Icon=match app.Icon with
+            Icon=
+            match app.Icon with
                 | null -> null
                 | a -> a.Value
         }
@@ -147,29 +153,26 @@ type SQLiteRepository(conn: SQLiteConnection) =
 
     interface IDbRepository with
         member this.Insert(arg: App): unit = 
-            arg.Id <- insert2 "App" 
+            arg.Id <- insert "App" 
                 [|"Name"; "Path"; "Color"; "Icon"|]
                 (toAppObj arg)
         member this.Insert(arg: Tag): unit = 
-            arg.Id <- insert 
-                "insert into Tag 
-                (Name, ForegroundColor, BackgroundColor) values 
-                (@Name, @ForegroundColor, @BackgroundColor)"
+            arg.Id <- insert "Tag"
+                [|"Name"; "ForegroundColor"; "BackgroundColor"|]
                 arg
         member this.Insert(arg: AppUsage): unit = 
-            arg.Id <- insert 
-                "insert into AppUsage 
-                (AppId, Start, End, StartReason, EndReason, UsageType) values 
-                (@AppId, @Start, @End, @StartReason, @EndReason, @UsageType)"
+            arg.Id <- insert "AppUsage"
+                [|"AppId"; "Start"; "End"; "StartReason"; "EndReason"; "UsageType"|]
                 (toAppUsageObj arg)
         member this.Insert(arg: Reminder): unit = 
-            arg.Id <- insert 
-                "insert into AppUsage 
-                (Offset, ActionType, ActionParam) values
-                (@Offset, @ActionType, @ActionParam)"
+            arg.Id <- insert "Reminder" 
+                [|"Offset"; "ActionType"; "ActionParam"|]
                 (toReminderObj arg)
         member this.Insert(arg: Alert): unit = 
-            raise (System.NotImplementedException())
+            arg.Id <- insert "Alert" 
+                [|"MaxDuration"; "Enabled"; "ActionType"; "ActionParam"; "TimeRangeType";
+                "TimeRangeParam1"; "TimeRangeParam2"; "EntityType"; "Entity"|]
+                (toAlertObj arg)
 
         member this.Delete(arg: App): unit = 
             delete "App" arg.Id
@@ -193,8 +196,3 @@ type SQLiteRepository(conn: SQLiteConnection) =
             raise (System.NotImplementedException())
         member this.Update(arg: Alert): unit = 
             raise (System.NotImplementedException())
-
-type GG(x) = 
-    let g = SQLiteRepository(null)
-
-    member this.X = 1
