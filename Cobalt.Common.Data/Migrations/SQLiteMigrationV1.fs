@@ -13,6 +13,11 @@ type SQLiteMigrationV1(conn) =
             db.fldStr "Path";
             db.fldStr "Color";
             db.fldBlob "Icon";
-            db.fldStr "Name";]]
+            db.fldStr "Name";];
+        db.table "Tag" 
+            [db.pkLong "Id";
+            db.fldStr "Name";
+            db.fldStr "ForegroundColor";
+            db.fldStr "BackgroundColor"]]
         |> db.exec
 
