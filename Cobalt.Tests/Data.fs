@@ -83,7 +83,7 @@ type Data() =
 
         let res = conn.Query<ReminderObj>("select * from Reminder")
         res |> should haveCount 3
-        let [q1;q2;q3] = List.ofSeq res
+        let [q1;q2;q3;] = List.ofSeq res
         q1.Id |> should not' (equal 0L)
         q1.Offset |> should equal r1.Offset.Ticks
         q1.ActionType |> should equal 2L
@@ -97,7 +97,102 @@ type Data() =
         q3.ActionType |> should equal 1L
         q3.ActionParam |> should equal "wut"
 
+    [<Fact>]
+    member this.``Inserting alert does not fail``() =
+        let app = {Id=0L; Name="app1"; Icon=null; Path=""; Color=""; Tags=null}
+        let tag = {Id=0L; Name="tag1"; ForegroundColor="white"; BackgroundColor="red"}
+        let start = DateTime.Now
+        let end' = DateTime.Now.AddDays(2.0)
+        let a1 = {Id=0L;
+            Enabled=true;
+            Reminders=null;
+            TimeRange=Once 
+                {Start=start;
+                End=end'};
+            MaxDuration=TimeSpan.FromHours(1.0);
+            Action=Kill;
+            Entity=App app}
+        let a2 = {Id=0L;
+            Enabled=true;
+            Reminders=null;
+            TimeRange=Repeat RepeatTimeRange.Daily; 
+            MaxDuration=TimeSpan.FromHours(1.5);
+            Action=Message;
+            Entity=Tag tag}
+        let a3 = {Id=0L;
+            Enabled=true;
+            Reminders=null;
+            TimeRange=Repeat RepeatTimeRange.Monthly; 
+            MaxDuration=TimeSpan.FromHours(1.2);
+            Action=CustomMessage "i love u <3";
+            Entity=Tag tag}
+        let a4 = {Id=0L;
+            Enabled=true;
+            Reminders=null;
+            TimeRange=Repeat RepeatTimeRange.Weekly; 
+            MaxDuration=TimeSpan.FromHours(1.3);
+            Action=Script "reboot";
+            Entity=Tag tag}
+        repo.Insert app
+        repo.Insert tag
+        repo.Insert a1
+        repo.Insert a2
+        repo.Insert a3
+        repo.Insert a4
 
+        let appId = conn.ExecuteScalar<int64>("select Id from App")
+        let tagId = conn.ExecuteScalar<int64>("select Id from Tag")
+        let res = conn.Query<AlertObj>("select * from Alert")
+        res |> should haveCount 4
+        let [q1;q2;q3;q4] = List.ofSeq res
+
+        q1.Id |> should not' (equal 0L)
+        q1.EntityType |> should equal 0L
+        q1.AppId |> should equal appId
+        q1.TagId |> should equal null
+        q1.Enabled |> should equal true
+        q1.ActionType |> should equal 3L
+        q1.ActionParam |> should equal null
+        q1.TimeRangeType |> should equal 0L
+        q1.TimeRangeParam1 |> should equal start.Ticks
+        q1.TimeRangeParam2 |> should equal end'.Ticks
+        q1.MaxDuration |> should equal (TimeSpan.FromHours(1.0).Ticks)
+
+        q2.Id |> should not' (equal 0L)
+        q2.EntityType |> should equal 1L
+        q2.AppId |> should equal null
+        q2.TagId |> should equal tagId
+        q2.Enabled |> should equal true
+        q2.ActionType |> should equal 0L
+        q2.ActionParam |> should equal null
+        q2.TimeRangeType |> should equal 1L
+        q2.TimeRangeParam1 |> should equal 0L
+        q2.TimeRangeParam2 |> should equal 0L
+        q2.MaxDuration |> should equal (TimeSpan.FromHours(1.5).Ticks)
+
+        q3.Id |> should not' (equal 0L)
+        q3.EntityType |> should equal 1L
+        q3.AppId |> should equal null
+        q3.TagId |> should equal tagId
+        q3.Enabled |> should equal true
+        q3.ActionType |> should equal 1L
+        q3.ActionParam |> should equal "i love u <3"
+        q3.TimeRangeType |> should equal 1L
+        q3.TimeRangeParam1 |> should equal 2L
+        q3.TimeRangeParam2 |> should equal 0L
+        q3.MaxDuration |> should equal (TimeSpan.FromHours(1.2).Ticks)
+
+        q4.Id |> should not' (equal 0L)
+        q4.EntityType |> should equal 1L
+        q4.AppId |> should equal null
+        q4.TagId |> should equal tagId
+        q4.Enabled |> should equal true
+        q4.ActionType |> should equal 2L
+        q4.ActionParam |> should equal "reboot"
+        q4.TimeRangeType |> should equal 1L
+        q4.TimeRangeParam1 |> should equal 1L
+        q4.TimeRangeParam2 |> should equal 0L
+        q4.MaxDuration |> should equal (TimeSpan.FromHours(1.3).Ticks)
 
         
     interface IDisposable with
