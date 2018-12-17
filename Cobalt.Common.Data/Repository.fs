@@ -4,6 +4,7 @@ open System.Data.SQLite
 open Dapper
 open System.Text
 open Common.Common.Data.Migrations
+open System
 
 type IDbRepository = 
     abstract member Insert: App -> unit
@@ -63,7 +64,8 @@ type AlertObj = {
     TimeRangeParam1: int64
     TimeRangeParam2: int64
     EntityType: int64
-    Entity: int64
+    AppId: Nullable<int64>
+    TagId: Nullable<int64>
 }
 
 type IdObj<'a> = {
@@ -134,10 +136,10 @@ type SQLiteRepository(conn: SQLiteConnection, mig: SQLiteMigrator) =
             match a.TimeRange with
             | TimeRange.Once(once) -> (0L, once.Start.Ticks, once.End.Ticks)
             | TimeRange.Repeat(re) -> (1L, enumToVal re, 0L)
-        let (entityType, entity) =
+        let (entityType, appId: Nullable<int64>, tagId: Nullable<int64>) =
             match a.Entity with
-            | Monitorable.App(a) -> (0L, a.Id)
-            | Monitorable.Tag(t) -> (1L, t.Id)
+            | Monitorable.App(a) -> (0L, Nullable<int64>(a.Id), Nullable<int64>())
+            | Monitorable.Tag(t) -> (1L, Nullable<int64>(), Nullable<int64>(t.Id))
         {
             Id=a.Id;
             MaxDuration=a.MaxDuration.Ticks;
@@ -148,7 +150,8 @@ type SQLiteRepository(conn: SQLiteConnection, mig: SQLiteMigrator) =
             TimeRangeParam1=timeRangeParam1;
             TimeRangeParam2=timeRangeParam2;
             EntityType=entityType;
-            Entity=entity;
+            AppId=appId;
+            TagId=tagId;
         }
 
     interface IDbRepository with
@@ -171,7 +174,7 @@ type SQLiteRepository(conn: SQLiteConnection, mig: SQLiteMigrator) =
         member this.Insert(arg: Alert): unit = 
             arg.Id <- insert "Alert" 
                 [|"MaxDuration"; "Enabled"; "ActionType"; "ActionParam"; "TimeRangeType";
-                "TimeRangeParam1"; "TimeRangeParam2"; "EntityType"; "Entity"|]
+                "TimeRangeParam1"; "TimeRangeParam2"; "EntityType"; "TagId"; "AppId"|]
                 (toAlertObj arg)
 
         member this.Delete(arg: App): unit = 

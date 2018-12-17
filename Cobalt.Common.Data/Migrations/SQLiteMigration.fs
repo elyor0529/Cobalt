@@ -29,6 +29,8 @@ type SQLiteMigration(conn: SQLiteConnection, version) =
     let _fk fkDef =
         sprintf " foreign key(%s) references %s(%s) %s " fkDef.key fkDef.fTable fkDef.fKey
             (String.Join(" ", fkDef.triggers |> Seq.map (fun x-> sprintf "on %s %s" x.Key x.Value)))
+    let _index name tbl (fields:string list) =
+        sprintf "create index %s on %s(%s)" name tbl (String.Join(",", fields))
 
     member x.exec = _exec
     member x.table = _table
@@ -41,6 +43,7 @@ type SQLiteMigration(conn: SQLiteConnection, version) =
     member x.insert = _insert
     member x.keys = _keys
     member x.fk = _fk
+    member x.index = _index
 
     abstract member MigrateRun: unit -> unit
     interface IDbMigration with
