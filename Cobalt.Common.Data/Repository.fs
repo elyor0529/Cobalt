@@ -25,6 +25,18 @@ type IDbRepository =
     abstract member Delete: Reminder -> unit
     abstract member Delete: Alert -> unit
 
+    abstract member AddTagToApp: App -> Tag -> unit
+    abstract member RemoveTagFromApp: App -> Tag -> unit
+    abstract member AddReminderToAlert: Alert -> Reminder -> unit
+    abstract member RemoveReminderFromAlert: Alert -> Reminder -> unit
+
+    abstract member Get<'a> : unit -> IObservable<'a>
+    abstract member GetAppIcon: App -> byte[]
+    abstract member GetTagsWithApp: App -> IObservable<Tag>
+    abstract member GetAppsWithTag: Tag -> IObservable<App>
+    abstract member GetAppsWithTag: Tag -> IObservable<App>
+    abstract member GetAppUsageTime: ?start:DateTime -> ?end':DateTime -> IObservable<TimeSpan>
+
 [<CLIMutable>]
 type AppObj = {
     Id: int64
@@ -198,4 +210,16 @@ type SQLiteRepository(conn: SQLiteConnection, mig: SQLiteMigrator) =
         member this.Update(arg: Reminder): unit = 
             raise (System.NotImplementedException())
         member this.Update(arg: Alert): unit = 
+            raise (System.NotImplementedException())
+
+        member this.AddReminderToAlert(arg1: Alert) (arg2: Reminder): unit = 
+            raise (System.NotImplementedException())
+        member this.AddTagToApp(arg1: App) (arg2: Tag): unit = 
+            raise (System.NotImplementedException())
+        member this.RemoveReminderFromAlert(arg1: Alert) (arg2: Reminder): unit = 
+            raise (System.NotImplementedException())
+        member this.RemoveTagFromApp(arg1: App) (arg2: Tag): unit = 
+            raise (System.NotImplementedException())
+
+        member this.Get<'a> (): IObservable<'a> =
             raise (System.NotImplementedException())
