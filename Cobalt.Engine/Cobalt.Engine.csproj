@@ -13,4 +13,9 @@
     <PackageReference Include="Vanara.Windows.Shell" Version="3.2.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\Cobalt.Common.Transmission\Cobalt.Common.Transmission.csproj" />
+    <ProjectReference Include="..\Cobalt.Common.Utils\Cobalt.Common.Utils.csproj" />
+  </ItemGroup>
+
 </Project>

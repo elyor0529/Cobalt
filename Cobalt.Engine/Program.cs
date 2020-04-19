@@ -3,14 +3,26 @@ using System.ComponentModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading;
+using Cobalt.Common.Transmission;
+using Cobalt.Common.Transmission.Messages;
+using Grpc.Core;
+using ProtoBuf.Grpc;
 using Vanara.PInvoke;
 
 namespace Cobalt.Engine
 {
     public class Program
     {
+        private static TransmissionServer _server;
+        private static EngineService _engineSvc;
+
         private static void Main(string[] args)
         {
+            _engineSvc = new EngineService();
+            _server = new TransmissionServer(_engineSvc);
+            _server.StartServer();
+
             // TODO wait for new version of Vanara, then use User32.EventConstants.* instead of 3
             User32.SetWinEventHook(
                 3,
@@ -20,6 +32,21 @@ namespace Cobalt.Engine
                 0,
                 0,
                 User32.WINEVENT.WINEVENT_OUTOFCONTEXT);
+
+            new Thread(async x =>
+            {
+                var c = new TransmissionClient();
+                var client = c.EngineService();
+                client.Ping();
+                var cancel = new CancellationTokenSource(TimeSpan.FromMinutes(1));
+                var options = new CallOptions(cancellationToken: cancel.Token);
+                await foreach (var s in client.AppSwitches(new AppSwitchRequest()/*,new CallContext(options)*/))
+                {
+                    Console.WriteLine($"[1 THREAD] {s.AppName}: {s.AppCommandLine} | {s.AppDescription}");
+                }
+
+            }).Start();
+
             var msgLoop = new MessageLoop();
             msgLoop.Run();
         }
@@ -27,34 +54,43 @@ namespace Cobalt.Engine
         private static void Callback(User32.HWINEVENTHOOK hWinEventHook, uint winEvent, HWND hwnd, int idObject,
             int idChild, uint idEventThread, uint dwmsEventTime)
         {
-            var dwmsTimestamp = DateTimeOffset.Now.AddMilliseconds(dwmsEventTime - Environment.TickCount);
-            var tid = User32.GetWindowThreadProcessId(hwnd, out var pid);
-            var proc = Kernel32.OpenProcess(
-                ACCESS_MASK.FromEnum(Kernel32.ProcessAccess.PROCESS_QUERY_LIMITED_INFORMATION |
-                                     Kernel32.ProcessAccess.PROCESS_VM_READ), false, pid);
-
-            var pathLen = 512;
-            var path = new StringBuilder(pathLen);
-            var success = QueryFullProcessImageName(proc.DangerousGetHandle(), 0, path, ref pathLen);
-
-            if (!success)
+            try
             {
-                Console.WriteLine($"[ERR] Unable to find path for {pid}:{tid}");
-                return;
+
+                var dwmsTimestamp = DateTimeOffset.Now.AddMilliseconds(dwmsEventTime - Environment.TickCount);
+                var tid = User32.GetWindowThreadProcessId(hwnd, out var pid);
+                var proc = Kernel32.OpenProcess(
+                    ACCESS_MASK.FromEnum(Kernel32.ProcessAccess.PROCESS_QUERY_LIMITED_INFORMATION |
+                                         Kernel32.ProcessAccess.PROCESS_VM_READ), false, pid);
+
+                var pathLen = 512;
+                var path = new StringBuilder(pathLen);
+                var success = QueryFullProcessImageName(proc.DangerousGetHandle(), 0, path, ref pathLen);
+
+                if (!success)
+                {
+                    Console.WriteLine($"[ERR] Unable to find path for {pid}:{tid}");
+                    return;
+                }
+
+                var info = FileVersionInfo.GetVersionInfo(path.ToString());
+
+
+                var pbi = new PROCESS_BASIC_INFORMATION();
+                NtQueryInformationProcess(proc.DangerousGetHandle(), PROCESSINFOCLASS.ProcessBasicInformation,
+                    ref pbi, pbi.Size, out _);
+
+                var peb = ReadProcessMemory<PEB>(proc, pbi.PebBaseAddress);
+                var pparams = ReadProcessMemory<RTL_USER_PROCESS_PARAMETERS>(proc, peb.ProcessParameters);
+                var cmd = pparams.CommandLine.ToString(proc);
+
+                _engineSvc.PushAppSwitch(new AppSwitchMessage
+                    {AppCommandLine = cmd, AppDescription = info.FileDescription, AppName = path.ToString()});
             }
+            catch (Exception e)
+            {
 
-            var info = FileVersionInfo.GetVersionInfo(path.ToString());
-
-
-            var pbi = new PROCESS_BASIC_INFORMATION();
-            NtQueryInformationProcess(proc.DangerousGetHandle(), PROCESSINFOCLASS.ProcessBasicInformation,
-                ref pbi, pbi.Size, out _);
-
-            var peb = ReadProcessMemory<PEB>(proc, pbi.PebBaseAddress);
-            var pparams = ReadProcessMemory<RTL_USER_PROCESS_PARAMETERS>(proc, peb.ProcessParameters);
-            var cmd = pparams.CommandLine.ToString(proc);
-
-            Console.WriteLine($"{path}: {cmd} | {info.FileDescription}");
+            }
         }
 
         #region Win32
