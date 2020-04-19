@@ -6,7 +6,7 @@ namespace Cobalt.Common.Utils
     {
         public static DateTimeOffset StartOfWeek(this DateTimeOffset d)
         {
-            return d.AddDays(-(int)d.DayOfWeek);
+            return d.AddDays(-(int) d.DayOfWeek);
         }
 
         public static DateTimeOffset EndOfWeek(this DateTimeOffset d)

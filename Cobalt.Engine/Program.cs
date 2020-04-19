@@ -7,7 +7,6 @@ using System.Threading;
 using Cobalt.Common.Transmission;
 using Cobalt.Common.Transmission.Messages;
 using Grpc.Core;
-using ProtoBuf.Grpc;
 using Vanara.PInvoke;
 
 namespace Cobalt.Engine
@@ -48,11 +47,8 @@ namespace Cobalt.Engine
                 var client = c.EngineService();
                 var cancel = new CancellationTokenSource(TimeSpan.FromMinutes(1));
                 var options = new CallOptions(cancellationToken: cancel.Token);
-                await foreach (var s in client.AppSwitches(/*,new CallContext(options)*/))
-                {
+                await foreach (var s in client.AppSwitches( /*,new CallContext(options)*/))
                     Console.WriteLine($"[${num} THREAD] {s.AppName}: {s.AppCommandLine} | {s.AppDescription}");
-                }
-
             }).Start();
         }
 
@@ -61,7 +57,6 @@ namespace Cobalt.Engine
         {
             try
             {
-
                 var dwmsTimestamp = DateTimeOffset.Now.AddMilliseconds(dwmsEventTime - Environment.TickCount);
                 var tid = User32.GetWindowThreadProcessId(hwnd, out var pid);
                 var proc = Kernel32.OpenProcess(
@@ -94,7 +89,6 @@ namespace Cobalt.Engine
             }
             catch (Exception e)
             {
-
             }
         }
 
