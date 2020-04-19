@@ -7,10 +7,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Vanara.PInvoke.Kernel32" Version="3.2.3" />
-    <PackageReference Include="Vanara.PInvoke.NtDll" Version="3.2.3" />
-    <PackageReference Include="Vanara.PInvoke.User32" Version="3.2.3" />
-    <PackageReference Include="Vanara.Windows.Shell" Version="3.2.3" />
+    <PackageReference Include="Vanara.PInvoke.Kernel32" Version="3.2.5" />
+    <PackageReference Include="Vanara.PInvoke.NtDll" Version="3.2.5" />
+    <PackageReference Include="Vanara.PInvoke.User32" Version="3.2.5" />
+    <PackageReference Include="Vanara.Windows.Shell" Version="3.2.5" />
   </ItemGroup>
 
   <ItemGroup>

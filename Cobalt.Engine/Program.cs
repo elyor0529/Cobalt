@@ -25,10 +25,9 @@ namespace Cobalt.Engine
             StartThread(0);
             StartThread(1);
 
-            // TODO wait for new version of Vanara, then use User32.EventConstants.* instead of 3
             User32.SetWinEventHook(
-                3,
-                3,
+                User32.EventConstants.EVENT_SYSTEM_FOREGROUND,
+                User32.EventConstants.EVENT_SYSTEM_FOREGROUND,
                 IntPtr.Zero,
                 Callback,
                 0,
