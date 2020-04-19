@@ -16,13 +16,12 @@ namespace Cobalt.Common.Transmission
 
         public TransmissionServer(EngineService engineSvc)
         {
+            _engineSvc = engineSvc;
             _server = new Server
             {
                 Ports = { new ServerPort(Constants.HostName, Constants.Port, Constants.ServerCredentials) },
             };
-            _server.Services.AddCodeFirst<IEngineService>(_engineSvc, log: Console.Out);
-            var def =_server.Services.First();
-            _engineSvc = engineSvc;
+            _server.Services.AddCodeFirst<IEngineService>(_engineSvc);
         }
 
         public void StartServer()

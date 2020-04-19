@@ -6,24 +6,17 @@ using ProtoBuf;
 
 namespace Cobalt.Common.Transmission.Messages
 {
-    [ProtoContract]
+    [DataContract]
     public class AppSwitchMessage
     {
-        [ProtoMember(1)]
+        [DataMember(Order = 1)]
         public string AppName { get; set; }
 
 
-        [ProtoMember(2)]
+        [DataMember(Order = 2)]
         public string AppDescription { get; set; }
 
-        [ProtoMember(3)]
+        [DataMember(Order = 3)]
         public string AppCommandLine { get; set; }
-    }
-
-    [ProtoContract]
-    public class AppSwitchRequest
-    {
-        [ProtoMember(1)]
-        public string AppName { get; set; }
     }
 }

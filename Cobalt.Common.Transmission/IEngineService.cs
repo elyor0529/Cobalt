@@ -6,13 +6,9 @@ using ProtoBuf.Grpc.Configuration;
 
 namespace Cobalt.Common.Transmission
 {
-    [ServiceContract(Name = "NANI")]
+    [ServiceContract]
     public interface IEngineService
     {
-        [OperationContract]
-        IAsyncEnumerable<AppSwitchMessage> AppSwitches(AppSwitchRequest req/*, CallContext context = default*/);
-
-        [OperationContract]
-        AppSwitchMessage Ping();
+        IAsyncEnumerable<AppSwitchMessage> AppSwitches(/*CallContext context = default*/);
     }
 }

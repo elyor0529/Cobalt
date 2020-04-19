@@ -15,20 +15,15 @@ namespace Cobalt.Common.Transmission
 {
     public class EngineService : IEngineService
     {
-        private readonly BehaviorSubject<AppSwitchMessage> _appSwitches =
-            new BehaviorSubject<AppSwitchMessage>(new AppSwitchMessage());
+        private readonly Subject<AppSwitchMessage> _appSwitches =
+            new Subject<AppSwitchMessage>();
 
-        public async IAsyncEnumerable<AppSwitchMessage> AppSwitches(AppSwitchRequest req/*, CallContext context = default*/)
+        public async IAsyncEnumerable<AppSwitchMessage> AppSwitches(/*CallContext context = default*/)
         {
             await foreach (var x in _appSwitches
                 .ToAsyncEnumerable()
                 /*.WithCancellation(context.CancellationToken)*/)
                 yield return x;
-        }
-
-        public AppSwitchMessage Ping()
-        {
-            return new AppSwitchMessage();
         }
 
         public void PushAppSwitch(AppSwitchMessage msg)

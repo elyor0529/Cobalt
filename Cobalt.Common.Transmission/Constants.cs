@@ -9,7 +9,7 @@ namespace Cobalt.Common.Transmission
     {
         public static string HostName = "localhost";
         public static int Port = 0x8085;
-        public static ServerCredentials ServerCredentials = ServerCredentials.Insecure;
-        public static ChannelCredentials ClientCredentials = ChannelCredentials.Insecure;
+        public static readonly ServerCredentials ServerCredentials = ServerCredentials.Insecure;
+        public static readonly ChannelCredentials ClientCredentials = ChannelCredentials.Insecure;
     }
 }

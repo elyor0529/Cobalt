@@ -23,6 +23,9 @@ namespace Cobalt.Engine
             _server = new TransmissionServer(_engineSvc);
             _server.StartServer();
 
+            StartThread(0);
+            StartThread(1);
+
             // TODO wait for new version of Vanara, then use User32.EventConstants.* instead of 3
             User32.SetWinEventHook(
                 3,
@@ -33,22 +36,24 @@ namespace Cobalt.Engine
                 0,
                 User32.WINEVENT.WINEVENT_OUTOFCONTEXT);
 
+            var msgLoop = new MessageLoop();
+            msgLoop.Run();
+        }
+
+        public static void StartThread(int num)
+        {
             new Thread(async x =>
             {
                 var c = new TransmissionClient();
                 var client = c.EngineService();
-                client.Ping();
                 var cancel = new CancellationTokenSource(TimeSpan.FromMinutes(1));
                 var options = new CallOptions(cancellationToken: cancel.Token);
-                await foreach (var s in client.AppSwitches(new AppSwitchRequest()/*,new CallContext(options)*/))
+                await foreach (var s in client.AppSwitches(/*,new CallContext(options)*/))
                 {
-                    Console.WriteLine($"[1 THREAD] {s.AppName}: {s.AppCommandLine} | {s.AppDescription}");
+                    Console.WriteLine($"[${num} THREAD] {s.AppName}: {s.AppCommandLine} | {s.AppDescription}");
                 }
 
             }).Start();
-
-            var msgLoop = new MessageLoop();
-            msgLoop.Run();
         }
 
         private static void Callback(User32.HWINEVENTHOOK hWinEventHook, uint winEvent, HWND hwnd, int idObject,
