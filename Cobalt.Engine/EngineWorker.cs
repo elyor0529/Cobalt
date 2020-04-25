@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Cobalt.Common.Communication.Messages;
 using Cobalt.Engine.Watchers;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -8,32 +10,40 @@ using Vanara.PInvoke;
 
 namespace Cobalt.Engine
 {
-    public class EngineWorker : IHostedService
+    public class EngineWorker : BackgroundService, IHostedService
     {
+        private readonly EngineService _engineSvc;
         private readonly ForegroundWindowWatcher _fgWinWatcher;
         private readonly ILogger<EngineWorker> _logger;
         private readonly MessageLoop _msgLoop;
 
-        public EngineWorker(ILogger<EngineWorker> logger)
+        public EngineWorker(ILogger<EngineWorker> logger, EngineService engineSvc)
         {
             _logger = logger;
+            _engineSvc = engineSvc;
             _msgLoop = new MessageLoop();
             _fgWinWatcher = new ForegroundWindowWatcher();
         }
 
-        public async Task StartAsync(CancellationToken cancellationToken)
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _fgWinWatcher.Subscribe(x =>
-                _logger.LogWarning("{Timestamp}: {Path}", x.ActivatedTimestamp, x.ProcessFilePath));
+            await Task.Run(() =>
+            {
+                _fgWinWatcher.Subscribe(x =>
+                    _logger.LogDebug("{Timestamp}: {Path}", x.ActivatedTimestamp, x.ProcessFilePath));
 
-            _fgWinWatcher.Watch();
-            _msgLoop.Run();
-        }
+                _fgWinWatcher.Count().Subscribe(x =>
+                    _engineSvc.PushForegroundWindowSwitch(new ForegroundWindowSwitch {WindowId = x}));
 
-        public async Task StopAsync(CancellationToken cancellationToken)
-        {
-            _fgWinWatcher.Dispose();
-            _msgLoop.Quit();
+                _fgWinWatcher.Watch();
+
+                stoppingToken.Register(() =>
+                {
+                    _fgWinWatcher.Dispose();
+                    _msgLoop.Quit();
+                });
+                _msgLoop.Run();
+            }, stoppingToken);
         }
     }
 }

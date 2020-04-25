@@ -1,5 +1,8 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+﻿using Cobalt.Common.Communication;
+using Microsoft.AspNetCore;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.Extensions.Logging;
 
 namespace Cobalt.Engine
 {
@@ -10,10 +13,16 @@ namespace Cobalt.Engine
             CreateHostBuilder(args).Build().Run();
         }
 
-        public static IHostBuilder CreateHostBuilder(string[] args)
+        public static IWebHostBuilder CreateHostBuilder(string[] args)
         {
-            return Host.CreateDefaultBuilder(args)
-                .ConfigureServices((hostContext, services) => { services.AddHostedService<EngineWorker>(); });
+            return WebHost.CreateDefaultBuilder(args)
+                .ConfigureLogging(logging => { logging.SetMinimumLevel(LogLevel.Trace); })
+                .ConfigureKestrel(opts =>
+                {
+                    opts.ListenLocalhost(CommunicationManager.Port,
+                        lstOpts => { lstOpts.Protocols = HttpProtocols.Http2; });
+                })
+                .UseStartup<Startup>();
         }
     }
 }
