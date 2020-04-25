@@ -1,17 +1,15 @@
-﻿using Microsoft.Extensions.Hosting;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Hosting;
 using Vanara.PInvoke;
 
 namespace Cobalt.Engine
 {
     public class EngineWorker : IHostedService
     {
-        private readonly MessageLoop _msgLoop;
         private readonly ForegroundWindowWatcher _fgWinWatcher;
+        private readonly MessageLoop _msgLoop;
 
         public EngineWorker()
         {
