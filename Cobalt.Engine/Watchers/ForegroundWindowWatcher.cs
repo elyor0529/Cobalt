@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Reactive.Subjects;
 using Cobalt.Common.Utils;
 using Vanara.PInvoke;
 
 namespace Cobalt.Engine.Watchers
 {
-
     public class ForegroundWindowWatcher : Watcher<WindowInfo>
     {
         private User32.WinEventProc _foregroundWindowChanged;
@@ -37,9 +35,12 @@ namespace Cobalt.Engine.Watchers
         {
             var dwmsTimestamp = GetDwmsTimestamp(dwmseventtime);
             if (!User32.IsWindowVisible(hwnd)) return;
-            Events.OnNext(new WindowInfo { ActivatedTimestamp = dwmsTimestamp});
+            Events.OnNext(new WindowInfo {ActivatedTimestamp = dwmsTimestamp});
         }
 
-        private DateTimeOffset GetDwmsTimestamp(uint dwmseventtime) =>DateTimeOffset.Now.AddMilliseconds(dwmseventtime - Environment.TickCount);
+        private DateTimeOffset GetDwmsTimestamp(uint dwmseventtime)
+        {
+            return DateTimeOffset.Now.AddMilliseconds(dwmseventtime - Environment.TickCount);
+        }
     }
 }

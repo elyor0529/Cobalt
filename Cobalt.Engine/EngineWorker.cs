@@ -11,8 +11,8 @@ namespace Cobalt.Engine
     public class EngineWorker : IHostedService
     {
         private readonly ForegroundWindowWatcher _fgWinWatcher;
-        private readonly MessageLoop _msgLoop;
         private readonly ILogger<EngineWorker> _logger;
+        private readonly MessageLoop _msgLoop;
 
         public EngineWorker(ILogger<EngineWorker> logger)
         {
