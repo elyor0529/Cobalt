@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using Cobalt.Engine.Watchers;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Vanara.PInvoke;
 
 namespace Cobalt.Engine
@@ -10,16 +12,19 @@ namespace Cobalt.Engine
     {
         private readonly ForegroundWindowWatcher _fgWinWatcher;
         private readonly MessageLoop _msgLoop;
+        private readonly ILogger<EngineWorker> _logger;
 
-        public EngineWorker()
+        public EngineWorker(ILogger<EngineWorker> logger)
         {
+            _logger = logger;
             _msgLoop = new MessageLoop();
             _fgWinWatcher = new ForegroundWindowWatcher();
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            _fgWinWatcher.WindowChanged.Subscribe(x => Console.WriteLine($"{x.Item2}: {x.Item1}"));
+            _fgWinWatcher.Subscribe(x =>
+                _logger.LogWarning("{Timestamp}: {Path}", x.ActivatedTimestamp, x.ProcessFilePath));
 
             _fgWinWatcher.Watch();
             _msgLoop.Run();
