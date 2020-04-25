@@ -5,7 +5,9 @@ VisualStudioVersion = 16.0.29306.81
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cobalt.Common.Utils", "Cobalt.Common.Utils\Cobalt.Common.Utils.csproj", "{6327A014-272D-4BB3-9266-41C06B3634EA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cobalt.Engine", "Cobalt.Engine\Cobalt.Engine.csproj", "{7F636D25-4F10-43C1-BD54-FA99FB6451BB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cobalt.Engine", "Cobalt.Engine\Cobalt.Engine.csproj", "{7F636D25-4F10-43C1-BD54-FA99FB6451BB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cobalt.Common.Communication", "Cobalt.Common.Communication\Cobalt.Common.Communication.csproj", "{122FDB20-0B66-4DD5-8F80-636AA89AF402}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -31,6 +33,14 @@ Global
 		{7F636D25-4F10-43C1-BD54-FA99FB6451BB}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7F636D25-4F10-43C1-BD54-FA99FB6451BB}.Release|x64.ActiveCfg = Release|Any CPU
 		{7F636D25-4F10-43C1-BD54-FA99FB6451BB}.Release|x64.Build.0 = Release|Any CPU
+		{122FDB20-0B66-4DD5-8F80-636AA89AF402}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{122FDB20-0B66-4DD5-8F80-636AA89AF402}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{122FDB20-0B66-4DD5-8F80-636AA89AF402}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{122FDB20-0B66-4DD5-8F80-636AA89AF402}.Debug|x64.Build.0 = Debug|Any CPU
+		{122FDB20-0B66-4DD5-8F80-636AA89AF402}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{122FDB20-0B66-4DD5-8F80-636AA89AF402}.Release|Any CPU.Build.0 = Release|Any CPU
+		{122FDB20-0B66-4DD5-8F80-636AA89AF402}.Release|x64.ActiveCfg = Release|Any CPU
+		{122FDB20-0B66-4DD5-8F80-636AA89AF402}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
