@@ -8,7 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="Tests.fs" />
+    <Compile Include="Utils\ProcessUtil.fs" />
+    <Compile Include="Engine.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
@@ -24,6 +25,12 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Cobalt.Common.Communication\Cobalt.Common.Communication.csproj" />
+    <ProjectReference Include="..\Cobalt.Common.Utils\Cobalt.Common.Utils.csproj" />
+    <ProjectReference Include="..\Cobalt.Engine\Cobalt.Engine.csproj" />
   </ItemGroup>
 
   <ItemGroup>
