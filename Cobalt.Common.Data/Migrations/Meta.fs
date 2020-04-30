@@ -23,14 +23,11 @@ module Meta =
 
     type TableChanges = { added: Table list; removed: string list; altered: AlterTable list }
     type IndexChanges = { added: Index list; removed: string list }
-    type SchemaChanges = { table: TableChanges; index: IndexChanges }
-
-    [<AbstractClass>]
-    type MigrationBase(ver: int) =
-        member _.Version = ver
-        abstract member Migrate: Schema -> SchemaChanges
-
-    let noChange = { table = { added = []; removed = []; altered = []}; index = { added = []; removed = [] } }
+    type SchemaChanges = {
+        table: TableChanges;
+        index: IndexChanges
+    }
+    let emptyChanges = { table = { added = []; removed = []; altered = []}; index = { added = []; removed = [] } }
     let emptySchema = { tables = Map.empty; indexes = Map.empty }
 
     let table name = { name = name; fields = Map.empty }
@@ -51,5 +48,16 @@ module Meta =
     let pkAuto = [primaryKey AutoIncrement]
 
 
-    
+    type SchemaContext(schema: Schema) =
+        member val Schema = schema
+        member val Changes = emptyChanges with get, set
+
+        member x.create table =
+            x.Changes <- { x.Changes with table = { x.Changes.table with added = table :: x.Changes.table.added } }
+            
+
+    [<AbstractClass>]
+    type MigrationBase(ver: int) =
+        member _.Version = ver
+        abstract member Migrate: SchemaContext -> unit
 
