@@ -45,17 +45,18 @@ module Meta =
     let unique field = { field with unique = true }
     let primaryKey typ field = { field with keyOpt = Some(typ) }
 
-    let pkAuto = [primaryKey AutoIncrement]
-
+    let pkAuto = primaryKey AutoIncrement
 
     type SchemaContext(schema: Schema) =
         member val Schema = schema
         member val Changes = emptyChanges with get, set
 
-        member x.create table =
+        static member (|>>) (table: Table, x: SchemaContext) =
             x.Changes <- { x.Changes with table = { x.Changes.table with added = table :: x.Changes.table.added } }
-            
 
+        static member (|>>) (index: Index, x: SchemaContext) =
+            x.Changes <- { x.Changes with index = { x.Changes.index with added = index :: x.Changes.index.added } }
+            
     [<AbstractClass>]
     type MigrationBase(ver: int) =
         member _.Version = ver
