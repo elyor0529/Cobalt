@@ -6,6 +6,8 @@ open System
 
 type Proc (fName: string) =
     let proc = Process.Start(ProcessStartInfo(FileName = fName, WindowStyle = ProcessWindowStyle.Normal))
+    do
+        proc.WaitForInputIdle() |> ignore
 
     member _.makeFg () =
         let hwnd = HWND proc.MainWindowHandle
