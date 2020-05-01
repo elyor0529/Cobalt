@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="Utils\GeneralUtil.fs" />
     <Compile Include="Utils\ObservableUtil.fs" />
     <Compile Include="Utils\ProcessUtil.fs" />
     <Compile Include="Engine.fs" />

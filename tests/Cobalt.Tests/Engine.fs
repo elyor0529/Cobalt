@@ -12,6 +12,7 @@ open Vanara.PInvoke
 open System.Reactive
 open System.Reactive.Linq
 open System
+open GeneralUtils
 
 [<Fact>]
 let ``adding numbers in FsUnit`` () = 
@@ -36,14 +37,14 @@ let ``switching foreground`` () =
     } |> Async.Start
 
     let e = monitor fgWatcher (fun () -> Thread.Sleep(1000))
-    test <@ List.length e.values = 0 @>
+    test <@ e.isNothing @>
 
-    let e = monitor fgWatcher (fun () -> Thread.Sleep(1000); proc1.makeFg(); Thread.Sleep(1000))
-    test <@ List.length e.values = 1 @>
+    let e = monitor fgWatcher (fun () -> padDelay 1000 proc1.makeFg)
+    test <@ e.isJustOneValue.IsSome @>
 
-    let e = monitor fgWatcher (fun () -> Thread.Sleep(1000); proc2.makeFg(); Thread.Sleep(1000))
-    test <@ List.length e.values = 1 @>
+    let e = monitor fgWatcher (fun () -> padDelay 1000 proc2.makeFg)
+    test <@ e.isJustOneValue.IsSome @>
 
-    let e = monitor fgWatcher (fun () -> Thread.Sleep(1000); proc2.makeFg(); Thread.Sleep(1000))
-    test <@ List.length e.values = 0 @>
+    let e = monitor fgWatcher (fun () -> padDelay 1000 proc2.makeFg)
+    test <@ e.isNothing @>
 
