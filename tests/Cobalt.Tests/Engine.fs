@@ -4,6 +4,15 @@ open Xunit
 open FsUnit.Xunit
 open System.Threading
 open Utils
+open Swensen.Unquote
+
+[<Fact>]
+let ``adding numbers in FsUnit`` () = 
+    1 + 1 |> should equal 2
+
+[<Fact>]
+let ``adding numbers in Unquote`` () = 
+    test <@ 1 + 1 = 2 @>
 
 [<Fact>]
 let ``switching foreground`` () =
