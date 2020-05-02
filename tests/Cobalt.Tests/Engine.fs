@@ -29,7 +29,6 @@ let ``switching foreground`` () =
 
     use fgWatcher = new ForegroundWindowWatcher()
 
-
     async {
         fgWatcher.Watch()
         let msgLoop = MessageLoop()
