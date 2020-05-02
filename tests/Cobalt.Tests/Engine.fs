@@ -2,13 +2,11 @@ module Engine
 
 open Xunit
 open FsUnit.Xunit
-open System.Threading
-open Utils
-open ObservableUtil
 open Swensen.Unquote
+open Cobalt.Tests.Util
 open Cobalt.Engine.Watchers
 open Vanara.PInvoke
-open GeneralUtils
+open System.Threading
 
 [<Fact>]
 let ``adding numbers in FsUnit`` () = 
