@@ -1,20 +1,11 @@
 module Engine
 
 open Xunit
-open FsUnit.Xunit
 open Swensen.Unquote
 open Cobalt.Tests.Util
 open Cobalt.Engine.Watchers
 open Vanara.PInvoke
 open System.Threading
-
-[<Fact>]
-let ``adding numbers in FsUnit`` () = 
-    1 + 1 |> should equal 2
-
-[<Fact>]
-let ``adding numbers in Unquote`` () = 
-    test <@ 1 + 1 = 2 @>
 
 [<Fact>]
 let ``switching foreground`` () =
