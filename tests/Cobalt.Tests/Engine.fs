@@ -7,11 +7,7 @@ open Utils
 open ObservableUtil
 open Swensen.Unquote
 open Cobalt.Engine.Watchers
-open System.Threading.Tasks
 open Vanara.PInvoke
-open System.Reactive
-open System.Reactive.Linq
-open System
 open GeneralUtils
 
 [<Fact>]
