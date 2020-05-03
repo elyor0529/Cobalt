@@ -5,12 +5,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <EmbeddedResource Remove="Entities\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Entities.fs" />
     <Compile Include="Migrations\Meta.fs" />
     <Compile Include="Migrations\Migration1.fs" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Entities\" />
     <Folder Include="Repository\" />
   </ItemGroup>
 
