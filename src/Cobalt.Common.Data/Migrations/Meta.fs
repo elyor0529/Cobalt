@@ -35,7 +35,7 @@ module Meta =
     let index name table cols = { name = name; table = table; columns = cols }
 
     let field fieldType name fns table =
-        let fn = List.reduce (>>) fns
+        let fn = List.reduce (>>) (id :: fns)
         let field = fn { name = name; fieldType = fieldType; unique = false; nullable = false; keyOpt = None }
         { table with fields = Map.add name field table.fields }
     let text = field Text

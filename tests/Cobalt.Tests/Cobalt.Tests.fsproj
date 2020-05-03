@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <Compile Include="Utils\Util.fs" />
+    <Compile Include="Data.fs" />
     <Compile Include="General.fs" />
     <Compile Include="Engine.fs" />
     <Compile Include="Program.fs" />

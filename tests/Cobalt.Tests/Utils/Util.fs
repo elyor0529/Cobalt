@@ -16,6 +16,9 @@ type Proc (fName: string) =
     let proc = Process.Start(ProcessStartInfo(FileName = fName, WindowStyle = ProcessWindowStyle.Normal))
     do
         proc.WaitForInputIdle() |> ignore
+        while not (User32.ShowWindow(HWND proc.MainWindowHandle, ShowWindowCommand.SW_NORMAL)) do
+            Thread.Sleep 100
+            proc.Refresh()
 
     member _.makeFg () =
         let hwnd = HWND proc.MainWindowHandle
