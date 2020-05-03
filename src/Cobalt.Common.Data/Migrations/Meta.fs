@@ -1,8 +1,12 @@
 ﻿namespace Cobalt.Common.Data.Migrations
 
+open Microsoft.Data.Sqlite
+open Dapper
+open System
+
 module Meta =
     type KeyOptions = AutoIncrement | Normal
-    type FieldType = Text | Int | Real | Blob
+    type FieldType = Text | Integer | Real | Blob
     type Field = {
         name: string;
         fieldType: FieldType;
@@ -39,7 +43,7 @@ module Meta =
         let field = fn { name = name; fieldType = fieldType; unique = false; nullable = false; keyOpt = None }
         { table with fields = Map.add name field table.fields }
     let text = field Text
-    let integer = field Int
+    let integer = field Integer
     let blob = field Blob
     let real = field Real
 
@@ -62,9 +66,61 @@ module Meta =
 
         static member (|>>) (index: Index, x: SchemaContext) =
             x.Changes <- { x.Changes with index = { x.Changes.index with added = index :: x.Changes.index.added } }
-            
+
     [<AbstractClass>]
-    type MigrationBase(ver: int) =
+    type MigrationBase(ver: int, conn: SqliteConnection) =
+
+        let seperatedString s v = String.concat s (v |> Seq.filter (String.IsNullOrEmpty >> not))
+        let commaSep v = seperatedString "," v
+        let spaceSep v = seperatedString " " v
+
+        let fieldSql (fld: Field) =
+            let name = fld.name
+            let fldType = string fld.fieldType
+            let nullable = if fld.nullable then "" else "not null"
+            let unique = if fld.unique then "unique" else ""
+            let keyopts =
+                match fld.keyOpt with
+                    | None -> ""
+                    | Some AutoIncrement -> "primary key autoincrement"
+                    | Some Normal -> "primary key"
+            spaceSep [name; fldType; nullable; unique; keyopts]
+
+        let uniquesSql cols = sprintf "unique (%s)" (commaSep cols)
+        let primaryKeysSql cols = sprintf "primary key (%s)" (commaSep cols)
+        let foreignKeySql fk = sprintf "foreign key(%s) references %s(%s)" (commaSep fk.cols) fk.fTable (commaSep fk.fCols)
+
+
+        let createTable trans tbl =
+            let fields = tbl.fields |> Map.toSeq |> Seq.map snd |> Seq.map fieldSql
+            let uniques = tbl.uniques |> Seq.map uniquesSql
+            let pks = tbl.primaryKeys |> Seq.map primaryKeysSql
+            let fks = tbl.foreignKeys |> Seq.map foreignKeySql
+            let tblSql = sprintf "create table %s (%s);" tbl.name ([fields; pks; uniques; fks;] |> List.map commaSep |> commaSep)
+            conn.Execute(tblSql, transaction = trans) |> ignore
+        let removeTable trans tbl =
+            conn.Execute("", transaction = trans) |> ignore
+        let alterTable trans tbl =
+            conn.Execute("", transaction = trans) |> ignore
+
+        let createIndex trans idx =
+            conn.Execute(sprintf "create index %s on %s(%s)" idx.name idx.table (commaSep idx.columns), transaction = trans) |> ignore
+        let removeIndex trans idx =
+            conn.Execute("", transaction = trans) |> ignore
+
         member _.Version = ver
-        abstract member Migrate: SchemaContext -> unit
+        abstract member DescribeMigration: SchemaContext -> unit
+        member x.Migrate prevSchema =
+            let ctx = SchemaContext(prevSchema)
+            x.DescribeMigration ctx
+            use trans = conn.BeginTransaction()
+
+            ctx.Changes.table.added |> List.iter (createTable trans)
+            ctx.Changes.table.removed |> List.iter (removeTable trans)
+            ctx.Changes.table.altered |> List.iter (alterTable trans)
+
+            ctx.Changes.index.added |> List.iter (createIndex trans)
+            ctx.Changes.index.removed |> List.iter (removeIndex trans)
+
+            trans.Commit()
 

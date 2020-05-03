@@ -80,6 +80,6 @@ type Alert = {
     Id: int64;
     Target: Target;
     TimeRange: TimeRange;
-    Limit: TimeSpan;
-    Reaction: Reaction;
+    UsageLimit: TimeSpan;
+    ExceededReaction: Reaction;
 }
