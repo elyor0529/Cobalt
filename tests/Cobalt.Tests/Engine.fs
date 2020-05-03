@@ -23,13 +23,13 @@ let ``switching foreground with two apps`` () =
     let e = monitor fgWatcher (fun () -> Thread.Sleep(1000))
     test <@ e.isNothing @>
 
-    let e = monitor fgWatcher (fun () -> padDelay 1000 proc1.makeFg)
+    let e = monitor fgWatcher (fun () -> delayed proc1.makeFg)
     test <@ e.isJustOneValue.IsSome @>
 
-    let e = monitor fgWatcher (fun () -> padDelay 1000 proc2.makeFg)
+    let e = monitor fgWatcher (fun () -> delayed proc2.makeFg)
     test <@ e.isJustOneValue.IsSome @>
 
-    let e = monitor fgWatcher (fun () -> padDelay 1000 proc2.makeFg)
+    let e = monitor fgWatcher (fun () -> delayed proc2.makeFg)
     test <@ e.isNothing @>
 
 [<Fact>]
@@ -46,12 +46,12 @@ let ``switching foreground with more than two apps`` () =
         msgLoop.Run()
     } |> Async.Start
 
-    let e = monitor fgWatcher (fun () -> padDelay 1000 proc1.makeFg)
+    let e = monitor fgWatcher (fun () -> delayed proc1.makeFg)
     test <@ e.isJustOneValue.IsSome @>
 
     let e = monitor fgWatcher (fun () ->
-        padDelay 1000 proc2.makeFg;
-        padDelay 1000 proc3.makeFg;
-        padDelay 1000 proc1.makeFg;
-        padDelay 1000 proc3.makeFg)
+        delayed proc2.makeFg;
+        delayed proc3.makeFg;
+        delayed proc1.makeFg;
+        delayed proc3.makeFg)
     test <@ not e.completed && e.noExns && e.values.Length = 4 @>

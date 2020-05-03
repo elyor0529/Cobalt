@@ -10,24 +10,32 @@ let padDelay (num:int) fn =
     fn ()
     Thread.Sleep(num)
 
+let delayed fn = padDelay 2000 fn
+
 type Proc (fName: string) =
     let VK_MENU = 0x12uy
     let state = 0x80uy
     let proc = Process.Start(ProcessStartInfo(FileName = fName, WindowStyle = ProcessWindowStyle.Normal))
+    let mainWindowHWND () = HWND proc.MainWindowHandle
+
+    let isMainWindowVisible () =
+        User32.ShowWindow(mainWindowHWND(), ShowWindowCommand.SW_NORMAL)
+
     do
         proc.WaitForInputIdle() |> ignore
-        while not (User32.ShowWindow(HWND proc.MainWindowHandle, ShowWindowCommand.SW_NORMAL)) do
+        while String.IsNullOrEmpty proc.MainWindowTitle do
             Thread.Sleep 100
             proc.Refresh()
 
+
     member _.makeFg () =
-        let hwnd = HWND proc.MainWindowHandle
+        let hwnd = mainWindowHWND
         let keyState = Array.create 256 0uy
 
         if User32.GetKeyboardState(keyState) && ((keyState.[VK_MENU |> int] &&& state) = 0uy) then
             User32.keybd_event(VK_MENU, 0uy, User32.KEYEVENTF.KEYEVENTF_EXTENDEDKEY, unativeint 0)
 
-        User32.SetForegroundWindow(hwnd) |> ignore
+        User32.SetForegroundWindow(hwnd()) |> ignore
 
         if User32.GetKeyboardState(keyState) && ((keyState.[VK_MENU |> int] &&& state) = 0uy) then
             User32.keybd_event(VK_MENU, 0uy, User32.KEYEVENTF.KEYEVENTF_EXTENDEDKEY ||| User32.KEYEVENTF.KEYEVENTF_KEYUP, unativeint 0)
