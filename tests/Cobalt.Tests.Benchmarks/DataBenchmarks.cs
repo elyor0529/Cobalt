@@ -21,8 +21,8 @@ namespace Cobalt.Tests.Benchmarks
             var alert = new Alert
             {
                 Id = 1L,
-                Limit = TimeSpan.FromHours(4),
-                Reaction = Reaction.NewMessage("pls no more web browsing"),
+                UsageLimit = TimeSpan.FromHours(4),
+                ExceededReaction = Reaction.NewMessage("pls no more web browsing"),
                 Target = Target.NewApp(app),
                 TimeRange = Repeated.TimeRange(TimeSpan.FromHours(08), TimeSpan.FromHours(18), RepeatType.Monthly)
             };
