@@ -15,7 +15,7 @@ namespace Cobalt.Tests.Benchmarks
                 Name = "Chrome",
                 Background = "#fefefe",
                 Icon = new Lazy<byte[]>(() => new byte[0]),
-                Identification = Win32.Id("C:\\Desktop\\dumb_file.txt")
+                Identification = AppIdentification.NewWin32("C:\\Desktop\\dumb_file.txt")
             };
 
             var alert = new Alert
@@ -24,7 +24,22 @@ namespace Cobalt.Tests.Benchmarks
                 UsageLimit = TimeSpan.FromHours(4),
                 ExceededReaction = Reaction.NewMessage("pls no more web browsing"),
                 Target = Target.NewApp(app),
-                TimeRange = Repeated.TimeRange(TimeSpan.FromHours(08), TimeSpan.FromHours(18), RepeatType.Monthly)
+                TimeRange = TimeRange.NewRepeated(RepeatType.Monthly, TimeSpan.FromHours(08), TimeSpan.FromHours(18))
+            };
+
+            var perDay = alert.TimeRange switch
+            {
+                TimeRange.Once o => o.End - o.Start,
+                TimeRange.Repeated r when r.Type == RepeatType.Weekly => (r.EndOfDay - r.StartOfDay) * 7,
+                TimeRange.Repeated r => r.EndOfDay - r.StartOfDay,
+                _ => throw new NotImplementedException(),
+            };
+
+            var actions = alert.ExceededReaction switch
+            {
+                var x when x.IsKill => 1,
+                Reaction.Message x => x.Message.Length,
+                _ => throw new NotImplementedException(),
             };
 
 

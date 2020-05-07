@@ -4,15 +4,9 @@ open System
 
 
 type AppIdentification =
-    | Win32 of Win32
-    | UWP of UWP
-    | Java of Java
-and Win32 = { Path: string; }
-    with static member Id path = Win32 { Path = path }
-and UWP = { PRAID: string }
-    with static member Id praid = UWP { PRAID = praid }
-and Java = { MainJar: string }
-    with static member Id mainJar = Java { MainJar = mainJar }
+    | Win32 of Path: string
+    | UWP of PRAID: string
+    | Java of MainJar: string
 
 [<CLIMutable>]
 type App = {
@@ -46,7 +40,7 @@ type Usage = {
     Session: Session;
 }
 
-type SystemEventKind = Logon | Logoff | Active | Idle
+type SystemEventKind = Logon = 0L | Logoff = 1L | Active = 2L | Idle = 3L
 
 [<CLIMutable>]
 type SystemEvent = {
@@ -55,25 +49,16 @@ type SystemEvent = {
     Kind: SystemEventKind;
 }
 
-type Target = App of App | Tag of Tag
+type Target = App of App: App | Tag of App: Tag
 
 type TimeRange =
-    | Once of Once
-    | Repeated of Repeated
-and Once = {
-    Start: DateTime;
-    End:DateTime }
-    with static member TimeRange s e = Once { Start = s; End = e }
-and Repeated = {
-    StartOfDay: TimeSpan;
-    EndOfDay: TimeSpan;
-    Type: RepeatType }
-    with static member TimeRange s e t = Repeated { StartOfDay = s; EndOfDay = e; Type = t }
-and RepeatType = Daily | Weekly | Monthly
+    | Once of Start: DateTime * End: DateTime
+    | Repeated of Type: RepeatType * StartOfDay: TimeSpan * EndOfDay: TimeSpan
+and RepeatType = Daily = 0L | Weekly = 1L | Monthly = 2L
 
 type Reaction = 
     | Kill
-    | Message of string
+    | Message of Message: string
 
 [<CLIMutable>]
 type Alert = {

@@ -9,13 +9,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="Repository\DbRepository.fs" />
     <Compile Include="Entities.fs" />
     <Compile Include="Migrations\Meta.fs" />
     <Compile Include="Migrations\Migration1.fs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Repository\" />
   </ItemGroup>
 
   <ItemGroup>
