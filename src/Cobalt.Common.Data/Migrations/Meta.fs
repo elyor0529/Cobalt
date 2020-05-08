@@ -6,7 +6,7 @@ open System
 
 module Meta =
     type KeyOptions = AutoIncrement | Normal
-    type FieldType = Text | Integer | Real | Blob
+    type FieldType = Integer | Real | Text | Blob
     type Field = {
         name: string;
         fieldType: FieldType;
@@ -58,7 +58,7 @@ module Meta =
     let pkAuto = primaryKey AutoIncrement
 
     type SchemaContext(schema: Schema) =
-        member val Schema = schema
+        member val Schema = schema with get, set
         member val Changes = emptyChanges with get, set
 
         static member (|>>) (table: Table, x: SchemaContext) =
@@ -105,12 +105,24 @@ module Meta =
 
         member _.Version = ver
         abstract member DescribeMigration: SchemaContext -> unit
+        
+        member x.MigrateSchema ctx =
+            x.DescribeMigration ctx
+            let mutable tables = ctx.Schema.tables
+            tables <- ctx.Changes.table.added |> List.fold (fun tbls tbl -> Map.add tbl.name tbl tbls) tables
+            tables <- ctx.Changes.table.removed |> List.fold (fun tbls tbl -> Map.remove tbl tbls) tables
+
+            let mutable indexes = ctx.Schema.indexes
+            indexes <- ctx.Changes.index.added |> List.fold (fun idxs idx -> Map.add idx.name idx idxs) indexes
+            indexes <- ctx.Changes.index.removed |> List.fold (fun idxs idx -> Map.remove idx idxs) indexes
+            ctx.Schema <- { tables = tables; indexes = indexes }
+
         member x.Migrate prevSchema =
             let ctx = SchemaContext(prevSchema)
             x.DescribeMigration ctx
 
             if ver = 1 then
-                table "Migrations"
+                table "Migration"
                     |> integer "Version" [pkAuto]
                     |>> ctx
 
@@ -126,7 +138,6 @@ module Meta =
             ] |> List.iter
                 (fun x -> conn.Execute(x, transaction = trans) |> ignore)
 
-            conn.Execute("insert into Migrations values (@Version)", {| Version = ver |}) |> ignore
+            conn.Execute("insert into Migration values (@Version)", {| Version = ver |}) |> ignore
 
             trans.Commit()
-

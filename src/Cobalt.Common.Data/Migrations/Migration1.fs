@@ -7,7 +7,7 @@ type Migration1(conn) =
 
     override _.DescribeMigration ctx =
 
-        table "Apps"
+        table "App"
             |> integer  "Id"                        [pkAuto]
             |> text     "Name"                      []
             |> integer  "Identification_Tag"        []
@@ -17,13 +17,13 @@ type Migration1(conn) =
             |> uniques  ["Identification_Tag"; "Identification_Text1"]
             |>> ctx
 
-        table "Tags"
+        table "Tag"
             |> integer  "Id"                        [pkAuto]
             |> text     "Name"                      [unique]
             |> text     "Color"                     []
             |>> ctx
 
-        table "Apps_Tags"
+        table "App_Tag"
             |> integer  "AppId"                     []
             |> integer  "TagId"                     []
             |> primaryKeys ["AppId"; "TagId"]
@@ -31,7 +31,7 @@ type Migration1(conn) =
             |> foreignKeys ["TagId"] "Tag" ["Id"]
             |>> ctx
 
-        table "Sessions"
+        table "Session"
             |> integer  "Id"                        [pkAuto]
             |> text     "Title"                     []
             |> text     "CmdLine"                   []
@@ -39,7 +39,7 @@ type Migration1(conn) =
             |> foreignKeys ["AppId"] "App" ["Id"]
             |>> ctx
 
-        table "Usages"
+        table "Usage"
             |> integer  "Id"                        [pkAuto]
             |> integer  "Start"                     []
             |> integer  "End"                       []
@@ -47,13 +47,13 @@ type Migration1(conn) =
             |> foreignKeys ["SessionId"] "Session" ["Id"]
             |>> ctx
 
-        table "SystemEvents"
+        table "SystemEvent"
             |> integer  "Id"                        [pkAuto]
             |> integer  "Timestamp"                 []
             |> integer  "Kind"                      []
             |>> ctx
 
-        table "Alerts"
+        table "Alert"
             |> integer  "Id"                        [pkAuto]
             |> integer  "Target_AppId"              [nullable]
             |> integer  "Target_TagId"              [nullable]
@@ -69,12 +69,12 @@ type Migration1(conn) =
             |>> ctx
 
         index "App_Identification"
-            "Apps" ["Identification_Tag"; "Identification_Text1"]
+            "App" ["Identification_Tag"; "Identification_Text1"]
             |>> ctx
         index "Usage_StartEnd"
-            "Usages" ["Start"; "End"]
+            "Usage" ["Start"; "End"]
             |>> ctx
         index "Usage_EndStart"
-            "Usages" ["End"; "Start"]
+            "Usage" ["End"; "Start"]
             |>> ctx
 
