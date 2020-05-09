@@ -84,10 +84,9 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
                     let tag = mtag.Materialize 0 reader
                     box { tag with Apps = appsFor tag.Id } :?> 'a
                 | t when t = typeof<Session> ->
-                    let reader = singleReader (sprintf "select %s,%s from session session, app app where session.Id = %d and app.Id = session.AppId" msess.ColumnsPrefixedStr mapp.ColumnsPrefixedStr id)
+                    let reader = x.IdReader<Session> id
                     let session = msess.Materialize 0 reader
-                    let app = mapp.Materialize msess.FieldsCount reader
-                    box { session with App = app } :?> 'a
+                    box session :?> 'a
                 | _ -> failwithf "type %A not allowed for Get" typeof<'a>
 
         member _.InsertTagToApp app tag =

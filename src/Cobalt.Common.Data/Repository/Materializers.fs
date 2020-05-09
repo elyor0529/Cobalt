@@ -105,7 +105,8 @@ type SessionMaterializer(conn, sch) =
         let id = reader.GetInt64(offset + 0)
         let title = reader.GetString(offset + 1)
         let cmdLine = reader.GetString(offset + 2)
-        { Id = id; Title = title; CmdLine = cmdLine; App = Unchecked.defaultof<App> }
+        let appId = reader.GetInt64(offset + 3)
+        { Id = id; Title = title; CmdLine = cmdLine; App = { Id = appId; Name = ""; Identification = Win32 ""; Icon = null; Background = null; Tags = null } }
 
     override _.Dematerialize obj prms = 
         prms
