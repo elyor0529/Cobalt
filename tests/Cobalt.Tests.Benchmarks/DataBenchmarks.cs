@@ -59,12 +59,12 @@ namespace Cobalt.Tests.Benchmarks
                 AppIdentification.Java x => x.MainJar,
                 _ => throw new NotImplementedException(),
             };
-            var cmd = new SqliteCommand("insert into App(Name, Identification_Tag, Identification_Text1, Background, Icon) values (@Name, @Identification_Tag, @Identification_Text1, @Background, @Icon); select last_insert_rowid()", Connection);
-            cmd.Parameters.AddWithValue("Name", app.Name);
-            cmd.Parameters.AddWithValue("Identification_Tag", app.Identification.Tag);
-            cmd.Parameters.AddWithValue("Identification_Text1", text1);
-            cmd.Parameters.AddWithValue("Background", app.Background);
-            cmd.Parameters.AddWithValue("Icon", ((MemoryStream) app.Icon).ToArray());
+            var cmd = new SqliteCommand("insert into App(Name, Identification_Tag, Identification_Text1, Background, Icon) values (?, ?,?,?,?,?); select last_insert_rowid()", Connection);
+            cmd.Parameters.Add(app.Name);
+            cmd.Parameters.Add(app.Identification.Tag);
+            cmd.Parameters.Add(text1);
+            cmd.Parameters.Add(app.Background);
+            cmd.Parameters.Add(((MemoryStream) app.Icon).ToArray());
             app.Id = (long)cmd.ExecuteScalar();
             app.Icon = new SqliteBlob(Connection, "App", "Icon", app.Id);
             app.Tags = new Lazy<IEnumerable<Tag>>(); // needs more work to be realistic 

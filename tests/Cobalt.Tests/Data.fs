@@ -172,8 +172,13 @@ type Repository () =
 
         let rapp1 = repo.Insert app1
         let rsess1 = repo.Insert sess1
-
         test <@ { rsess1 with Id = 0L } = sess1 @>
+
+        let rsess1 = repo.Get<Session> rsess1.Id
+        test <@ { sess1 with App = app1; Id = 0L } = { rsess1 with App = app1; Id = 0L } @>
+        let rapp2 = rsess1.App
+        test <@ toArray rapp2.Icon  = [|1uy; 2uy; 3uy; 4uy|] @>
+        test <@ { app1 with Icon = null } = { rapp2 with Icon = null; Tags = null } @>
 
 
     interface IDisposable with
