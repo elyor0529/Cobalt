@@ -8,7 +8,7 @@ open System.Linq
 open Cobalt.Common.Data.Migrations.Meta
 
 type IDbRepository = 
-    abstract member Insert<'a> : 'a -> unit
+    abstract member Insert<'a> : 'a -> 'a
     abstract member Delete<'a> : 'a -> unit
     abstract member Get<'a> : int64 -> 'a
 
@@ -34,7 +34,7 @@ module RepoHelpers =
                 flds
                     |> Seq.map ((+) "@")
                     |> String.concat ",")
-        sprintf "insert into %s values (%s)" tblCols tblFlds
+        sprintf "insert into %s values (%s); select last_insert_rowid()" tblCols tblFlds
 
 open RepoHelpers
 
@@ -59,9 +59,12 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
     let exec sql p =
         conn.Execute(sql, p) |> ignore
 
-    let tagsFor (app: App) = 
-        reader "select * from tag where Id in (select TagId from App_Tag where AppId = @AppId)"
-            {| AppId = app.Id |} (mtag.Materialize 0)
+    let tagsFor appId = 
+        lazy reader "select * from tag where Id in (select TagId from App_Tag where AppId = @AppId)"
+            {| AppId = appId |} (mtag.Materialize 0)
+    let appsFor tagId = 
+        lazy reader "select * from app where Id in (select AppId from App_Tag where TagId = @TagId)"
+            {| TagId = tagId |} (mapp.Materialize 0)
 
     interface IDbRepository with
         member x.Insert obj = 
@@ -69,12 +72,18 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
                 | :? App as o ->
                     let c = cmd (insertSql schema o)
                     mapp.Dematerialize o c.Parameters
-                    c.ExecuteNonQuery() |> ignore
+                    let id = c.ExecuteScalar() :?> int64
+                    box { o with
+                            Id = id;
+                            Icon = new SqliteBlob(conn, "App", "Icon", id);
+                            Tags = tagsFor id
+                        } :?> 'a
                 | :? Tag as o ->
                     let c = cmd (insertSql schema o)
                     mtag.Dematerialize o c.Parameters
-                    c.ExecuteNonQuery() |> ignore
-                | :? Alert as o -> ()
+                    let id = c.ExecuteScalar() :?> int64
+                    box { o with Id = id; Apps = appsFor id } :?> 'a
+                | :? Alert as o -> box o :?> 'a
                 | _ -> failwithf "type %A not allowed for Insert" (obj.GetType())
 
         member x.Delete obj =
@@ -87,7 +96,7 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
             match typeof<'a> with
                 | t when t = typeof<App> ->
                     let app = mapp.Materialize 0 reader
-                    let app = { app with Tags = lazy (tagsFor app) }
+                    let app = { app with Tags = tagsFor app.Id }
                     box app :?> 'a
                 | t when t = typeof<Tag> ->
                     box (mtag.Materialize 0 reader) :?> 'a

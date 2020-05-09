@@ -35,9 +35,12 @@ let ``migration 1`` () =
     test <@ count = 0L @>
 
 let toArray (stream: Stream) = 
-    use mem = new MemoryStream()
-    stream.CopyTo(mem)
-    mem.ToArray()
+    match stream with
+        | :? MemoryStream -> (stream :?> MemoryStream).ToArray()
+        | _ -> 
+            use mem = new MemoryStream()
+            stream.CopyTo(mem)
+            mem.ToArray()
 
 let readBlob conn tbl col id =
     toArray (new SqliteBlob(conn, tbl, col, id))
@@ -58,9 +61,20 @@ type Repository () =
         let app1 = { Id = 2L; Name = "App1"; Identification = UWP "Main"; Background = "black"; Icon = new MemoryStream([||]); Tags = null }
         let app2 = { Id = 3L; Name = "App2"; Identification = Win32 @"C:\Users\default\12.exe"; Background = "grey"; Icon = new MemoryStream([|1uy;2uy;3uy;4uy|]); Tags = null }
         let app3 = { Id = 5L; Name = "App3"; Identification = Java "GhidraClassLoader Ghidra"; Background = "black"; Icon = new MemoryStream([| 2uy |]); Tags = null }
-        repo.Insert app1
-        repo.Insert app2
-        repo.Insert app3
+        let rapp1 = repo.Insert app1
+        let rapp2 = repo.Insert app2
+        let rapp3 = repo.Insert app3
+
+        test <@ toArray app1.Icon = toArray rapp1.Icon @>
+        test <@ toArray app2.Icon = toArray rapp2.Icon @>
+        test <@ toArray app3.Icon = toArray rapp3.Icon @>
+        test <@ Seq.isEmpty rapp1.Tags.Value @>
+        test <@ Seq.isEmpty rapp2.Tags.Value @>
+        test <@ Seq.isEmpty rapp3.Tags.Value @>
+        test <@ { app1 with Icon = null } = { rapp1 with Tags = null; Icon = null } @>
+        test <@ { app2 with Icon = null } = { rapp2 with Tags = null; Icon = null } @>
+        test <@ { app3 with Icon = null } = { rapp3 with Tags = null; Icon = null } @>
+
         let reader = conn.ExecuteReader "select * from App"
         test <@ reader.Read() = true @>
         test <@ reader.GetInt64(reader.GetOrdinal("Id")) = app1.Id @>
@@ -90,9 +104,9 @@ type Repository () =
         let app1 = { Id = 2L; Name = "App1"; Identification = UWP "Main"; Background = "black"; Icon = new MemoryStream([||]); Tags = null }
         let app2 = { Id = 3L; Name = "App2"; Identification = Win32 @"C:\Users\default\12.exe"; Background = "grey"; Icon = new MemoryStream([|1uy;2uy;3uy;4uy|]); Tags = null }
         let app3 = { Id = 5L; Name = "App3"; Identification = Java "GhidraClassLoader Ghidra"; Background = "black"; Icon = new MemoryStream([| 2uy |]); Tags = null }
-        repo.Insert app1
-        repo.Insert app2
-        repo.Insert app3
+        repo.Insert app1 |> ignore
+        repo.Insert app2 |> ignore
+        repo.Insert app3 |> ignore
 
         let rapp1 = repo.Get<App> app1.Id
         let rapp2 = repo.Get<App> app2.Id
@@ -109,7 +123,7 @@ type Repository () =
     [<Fact>]
     let ``insert tag and read it back`` () =
         let tag1 = { Id = 2L; Name = "Tag1"; Color = "blue"; Apps = null }
-        repo.Insert tag1
+        repo.Insert tag1 |> ignore
 
         let rtag1 = repo.Get<Tag> tag1.Id
         test <@ tag1 = rtag1 @>
@@ -117,13 +131,15 @@ type Repository () =
     [<Fact>]
     let ``inserted object with Id = 0 gets a new Id when inserted`` () =
         let tag1 = { Id = 0L; Name = "Tag1"; Color = "blue"; Apps = null }
-        repo.Insert tag1
+        let itag1 = repo.Insert tag1
+        test <@ itag1.Id <> 0L @>
 
         let rtag1 = conn.Query<Tag> "select * from tag"
         test <@ rtag1.Single().Id <> 0L @>
 
         let tag2 = { Id = 0L; Name = "Tag2"; Color = "red"; Apps = null }
-        repo.Insert tag2
+        let itag2 = repo.Insert tag2
+        test <@ itag2.Id = 2L @>
 
         let all = conn.Query<Tag> "select * from tag"
         test <@ all.Count() = 2 @>
@@ -135,8 +151,8 @@ type Repository () =
     let ``add and remove tag to app`` () =
         let app1 = { Id = 2L; Name = "App1"; Identification = UWP "Main"; Background = "black"; Icon = new MemoryStream([||]); Tags = null }
         let tag1 = { Id = 1L; Name = "Tag1"; Color = "blue"; Apps = null }
-        repo.Insert app1
-        repo.Insert tag1
+        repo.Insert app1 |> ignore
+        repo.Insert tag1 |> ignore
 
         repo.InsertTagToApp app1 tag1
 
