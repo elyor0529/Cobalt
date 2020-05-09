@@ -59,12 +59,12 @@ namespace Cobalt.Tests.Benchmarks
                 AppIdentification.Java x => x.MainJar,
                 _ => throw new NotImplementedException(),
             };
-            var cmd = new SqliteCommand("insert into App(Name, Identification_Tag, Identification_Text1, Background, Icon) values (?, ?,?,?,?,?); select last_insert_rowid()", Connection);
-            cmd.Parameters.Add(app.Name);
-            cmd.Parameters.Add(app.Identification.Tag);
-            cmd.Parameters.Add(text1);
-            cmd.Parameters.Add(app.Background);
-            cmd.Parameters.Add(((MemoryStream) app.Icon).ToArray());
+            var cmd = new SqliteCommand("insert into App(Name, Identification_Tag, Identification_Text1, Background, Icon) values (?,?,?,?,?); select last_insert_rowid()", Connection);
+            cmd.Parameters.Add(new SqliteParameter { Value = app.Name });
+            cmd.Parameters.Add(new SqliteParameter { Value = app.Identification.Tag });
+            cmd.Parameters.Add(new SqliteParameter { Value = text1 });
+            cmd.Parameters.Add(new SqliteParameter { Value = app.Background });
+            cmd.Parameters.Add(new SqliteParameter { Value = ((MemoryStream) app.Icon).ToArray() });
             app.Id = (long)cmd.ExecuteScalar();
             app.Icon = new SqliteBlob(Connection, "App", "Icon", app.Id);
             app.Tags = new Lazy<IEnumerable<Tag>>(); // needs more work to be realistic 
@@ -97,7 +97,7 @@ namespace Cobalt.Tests.Benchmarks
         public void AddAppUsingRepo()
         {
             var app = app1;
-            Repository.Insert(app);
+            app = Repository.Insert(app);
         }
 
         public void InsertApp()
