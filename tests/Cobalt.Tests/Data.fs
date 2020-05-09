@@ -179,6 +179,23 @@ type Repository () =
         let rapp2 = rsess1.App
         test <@ rapp2.Id = app1.Id @>
 
+    [<Fact>]
+    let ``insert usage`` () =
+        let now = DateTime.Now
+        let app1 = { Id = 3L; Name = "App2"; Identification = Win32 @"C:\Users\default\12.exe"; Background = "grey"; Icon = new MemoryStream([|1uy;2uy;3uy;4uy|]); Tags = null }
+        let sess1 = { Id = 2L; Title = "Window1"; CmdLine = "youface.exe boobies"; App = app1 }
+        let usage1 = { Id = 1L; Start = now.AddHours(1.0); End = now.AddHours(2.0); Session = sess1 }
+
+        let rapp1 = repo.Insert app1
+        let rsess1 = repo.Insert sess1
+        let rusage1 = repo.Insert usage1
+        test <@ { rusage1 with Session=sess1 } = {usage1 with Session=sess1} @>
+
+        let rusage1 = repo.Get<Usage> rusage1.Id
+        test <@ { rusage1 with Session =sess1} = { usage1 with Session = sess1; } @>
+        let sess2 = rusage1.Session
+        test <@ sess2.Id = sess1.Id @>
+
 
     interface IDisposable with
         member _.Dispose () = 

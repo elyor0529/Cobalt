@@ -3,21 +3,23 @@ namespace Cobalt.Common.Data.Repository
 open System.Data
 open Microsoft.Data.Sqlite
 open Cobalt.Common.Data.Entities
+open System
+open System.IO
+open Cobalt.Common.Data.Migrations.Meta
 open System.Linq
 
 module Helpers =
     let addParam key value (prms : SqliteParameterCollection) =
         prms.AddWithValue(key, value) |> ignore
         prms
+    let toDateTime ticks = DateTime(ticks, DateTimeKind.Utc).ToLocalTime()
+    let fromDateTime (dt:DateTime) = dt.ToUniversalTime().Ticks
     let inline autoGenId< ^T when ^T: (member Id: int64)> (o: ^T) = 
         if (^T : (member Id: int64) (o)) <> 0L then
             addParam "Id" (^T : (member Id: int64) (o))
         else id
 
 open Helpers
-open System
-open System.IO
-open Cobalt.Common.Data.Migrations.Meta
 
 [<AbstractClass>]
 type Materializer<'a>(conn, schema: Schema) =
@@ -146,15 +148,35 @@ type UsageMaterializer(conn, sch) =
         let sessid = reader.GetInt64(offset + 3)
         {
             Id = id;
-            Start = new DateTime(start, DateTimeKind.Utc);
-            End = new DateTime(ed, DateTimeKind.Utc);
+            Start = toDateTime start;
+            End = toDateTime ed;
             Session = { Id = sessid; Title = null; CmdLine = null; App = Unchecked.defaultof<App> }
         }
 
     override _.Dematerialize obj prms = 
         prms
         |> autoGenId obj
-        |> addParam "Start" (obj.Start.ToUniversalTime().Ticks)
-        |> addParam "End" (obj.End.ToUniversalTime().Ticks)
+        |> addParam "Start" (fromDateTime obj.Start)
+        |> addParam "End" (fromDateTime obj.End)
         |> addParam "SessionId" obj.Session.Id
+        |> ignore
+
+type SystemEventMaterializer(conn, sch) = 
+    inherit Materializer<SystemEvent>(conn, sch)
+
+    override _.Materialize offset reader =
+        let id = reader.GetInt64(offset + 0)
+        let timestamp = reader.GetInt64(offset + 1)
+        let kind = reader.GetInt64(offset + 2)
+        {
+            Id = id;
+            Timestamp = toDateTime timestamp;
+            Kind = LanguagePrimitives.EnumOfValue kind;
+        }
+
+    override _.Dematerialize obj prms = 
+        prms
+        |> autoGenId obj
+        |> addParam "Timestamp" (fromDateTime obj.Timestamp)
+        |> addParam "Kind" (LanguagePrimitives.EnumToValue obj.Kind)
         |> ignore
