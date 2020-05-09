@@ -15,34 +15,11 @@ type IDbRepository =
     abstract member InsertTagToApp : App -> Tag -> unit 
     abstract member DeleteTagToApp : App -> Tag -> unit 
 
-module RepoHelpers = 
-    let inline insertSql< ^T when ^T: (member Id: int64)> (sch: Schema) (o: ^T) = 
-        let tbl = sch.tables.Item typeof< ^T>.Name
-        let flds = tbl.fields.Select (fun x -> x.name)
-        let (tblCols, tblFlds) = 
-            if (^T : (member Id: int64) (o)) = 0L then
-                (flds
-                    |> Seq.except ["Id"]
-                    |> String.concat ","
-                    |> sprintf "%s(%s)" tbl.name,
-                flds
-                    |> Seq.except ["Id"]
-                    |> Seq.map ((+) "@")
-                    |> String.concat ",")
-            else
-                (tbl.name,
-                flds
-                    |> Seq.map ((+) "@")
-                    |> String.concat ",")
-        sprintf "insert into %s values (%s); select last_insert_rowid()" tblCols tblFlds
-
-open RepoHelpers
-
 type DbRepository (conn: SqliteConnection, mig: IMigrator) =
     let schema = mig.Migrate()
 
-    let mapp = AppMaterializer(conn)
-    let mtag = TagMaterializer(conn)
+    let mapp = AppMaterializer(conn, schema)
+    let mtag = TagMaterializer(conn, schema)
 
     let cmd sql = new SqliteCommand(sql, conn)
     let singleReader sql =
@@ -70,7 +47,7 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
         member x.Insert obj = 
             match box obj with
                 | :? App as o ->
-                    let c = cmd (insertSql schema o)
+                    let c = cmd (mapp.InsertSql o)
                     mapp.Dematerialize o c.Parameters
                     let id = c.ExecuteScalar() :?> int64
                     box { o with
@@ -79,7 +56,7 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
                             Tags = tagsFor id
                         } :?> 'a
                 | :? Tag as o ->
-                    let c = cmd (insertSql schema o)
+                    let c = cmd (mtag.InsertSql o)
                     mtag.Dematerialize o c.Parameters
                     let id = c.ExecuteScalar() :?> int64
                     box { o with Id = id; Apps = appsFor id } :?> 'a

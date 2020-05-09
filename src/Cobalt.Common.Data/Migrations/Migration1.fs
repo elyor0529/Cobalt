@@ -23,6 +23,7 @@ type Migration1(conn) =
             |> text     "Color"                     []
             |>> ctx
 
+        // TODO ondelete cascade
         table "App_Tag"
             |> integer  "AppId"                     []
             |> integer  "TagId"                     []

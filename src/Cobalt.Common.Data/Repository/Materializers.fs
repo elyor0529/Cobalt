@@ -3,6 +3,7 @@ namespace Cobalt.Common.Data.Repository
 open System.Data
 open Microsoft.Data.Sqlite
 open Cobalt.Common.Data.Entities
+open System.Linq
 
 module Helpers =
     let addParam key value (prms : SqliteParameterCollection) =
@@ -16,15 +17,32 @@ module Helpers =
 open Helpers
 open System
 open System.IO
+open Cobalt.Common.Data.Migrations.Meta
 
 [<AbstractClass>]
-type Materializer<'a>(conn) =
+type Materializer<'a>(conn, schema: Schema) =
+
+    member inline x.InsertSql< ^T when ^T: (member Id: int64)> (o: ^T) =
+        let (cols, flds) = if (^T : (member Id: int64) (o)) = 0L then (x.ColumnsWithoutIdStr, x.FieldsWithoutIdStr) else (x.ColumnsStr, x.FieldsStr)
+        sprintf "insert into %s(%s) values (%s); select last_insert_rowid()" x.Table.name cols flds
+
     member _.Connection = conn
+    member _.Schema = schema
+    member _.Table: Table = schema.tables.Item typeof<'a>.Name
+    member x.Fields = (x.Table.fields.Select (fun x -> x.name)).ToArray()
+    member x.FieldsWithoutId = (x.Fields |> Seq.except ["Id"]).ToArray()
+
+    member x.FieldsStr = x.Fields |> Array.map ((+) "@") |> String.concat ","
+    member x.FieldsWithoutIdStr = x.FieldsWithoutId |> Array.map ((+) "@") |> String.concat ","
+    member x.ColumnsStr = x.Fields |> String.concat ","
+    member x.ColumnsWithoutIdStr = x.FieldsWithoutId |> String.concat ","
+
+
     abstract member Materialize: int -> IDataReader -> 'a
     abstract member Dematerialize: 'a -> SqliteParameterCollection -> unit
 
-type AppMaterializer(conn) =
-    inherit Materializer<App>(conn)
+type AppMaterializer(conn, sch) =
+    inherit Materializer<App>(conn, sch)
 
     override _.Materialize offset reader =
         let id = reader.GetInt64(offset + 0)
@@ -62,8 +80,8 @@ type AppMaterializer(conn) =
         |> addParam "Icon" icon
         |> ignore
 
-type TagMaterializer(conn) =
-    inherit Materializer<Tag>(conn)
+type TagMaterializer(conn, sch) =
+    inherit Materializer<Tag>(conn, sch)
 
     override _.Materialize offset reader =
         let id = reader.GetInt64(offset + 0)
