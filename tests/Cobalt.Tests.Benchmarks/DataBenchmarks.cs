@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using BenchmarkDotNet.Attributes;
 using Cobalt.Common.Data.Entities;
@@ -78,6 +79,7 @@ namespace Cobalt.Tests.Benchmarks
             app.Id = (long) cmd.ExecuteScalar();
             app.Icon = new SqliteBlob(Connection, "App", "Icon", app.Id);
             app.Tags = new Lazy<IEnumerable<Tag>>(); // needs more work to be realistic 
+            Trace.Assert(app.Id != 0);
         }
 
         [Benchmark]
@@ -102,6 +104,7 @@ namespace Cobalt.Tests.Benchmarks
                 });
             app.Icon = new SqliteBlob(Connection, "App", "Icon", app.Id);
             app.Tags = new Lazy<IEnumerable<Tag>>(); // needs more work to be realistic 
+            Trace.Assert(app.Id != 0);
         }
 
         [Benchmark]
@@ -109,6 +112,7 @@ namespace Cobalt.Tests.Benchmarks
         {
             var app = app1;
             app = Repository.Insert(app);
+            Trace.Assert(app.Id != 0);
         }
 
         public void InsertApp()
