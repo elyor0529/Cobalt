@@ -16,7 +16,7 @@ module Meta =
     }
     type ForeignKey = { cols: string list; fTable: string; fCols: string list }
 
-    type Table = { name: string; fields: Map<string, Field>; uniques: string list list; primaryKeys: string list list; foreignKeys: ForeignKey list }
+    type Table = { name: string; fields: ResizeArray<Field>; uniques: string list list; primaryKeys: string list list; foreignKeys: ForeignKey list }
 
     type Index = { name: string; table: string; columns: string list; }
 
@@ -35,13 +35,14 @@ module Meta =
     let emptyChanges = { table = { added = []; removed = []; altered = []}; index = { added = []; removed = [] } }
     let emptySchema = { tables = Map.empty; indexes = Map.empty }
 
-    let table name = { name = name; fields = Map.empty; uniques = []; primaryKeys = []; foreignKeys = [] }
+    let table name = { name = name; fields = new ResizeArray<Field>(); uniques = []; primaryKeys = []; foreignKeys = [] }
     let index name table cols = { name = name; table = table; columns = cols }
 
     let field fieldType name fns table =
         let fn = List.reduce (>>) (id :: fns)
         let field = fn { name = name; fieldType = fieldType; unique = false; nullable = false; keyOpt = None }
-        { table with fields = Map.add name field table.fields }
+        table.fields.Add field
+        table
     let text = field Text
     let integer = field Integer
     let blob = field Blob
@@ -92,7 +93,7 @@ module Meta =
 
 
         let createTableSql tbl =
-            let fields = tbl.fields |> Map.toSeq |> Seq.map snd |> Seq.map fieldSql
+            let fields = tbl.fields |> Seq.map fieldSql
             let uniques = tbl.uniques |> Seq.map uniquesSql
             let pks = tbl.primaryKeys |> Seq.map primaryKeysSql
             let fks = tbl.foreignKeys |> Seq.map foreignKeySql

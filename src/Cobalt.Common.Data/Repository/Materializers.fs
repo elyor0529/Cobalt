@@ -11,6 +11,7 @@ module Helpers =
 
 open Helpers
 open System
+open System.IO
 
 [<AbstractClass>]
 type Materializer<'a>(conn) =
@@ -32,10 +33,13 @@ type AppMaterializer(conn) =
                     | 2L -> Java ident_text1
                     | _ -> failwith "unsupported tag"
         let bg = reader.GetString(offset + 4)
-        let icon = new SqliteBlob(conn, "App", "Icon", id)
+        let icon = reader.GetStream(offset + 5)
         { Id = id; Name = name; Identification = ident; Background = bg; Icon = icon; Tags = null; }
 
     override _.Dematerialize obj prms = 
+        use mem = new MemoryStream()
+        obj.Icon.CopyTo(mem)
+        let icon = mem.ToArray()
         prms
         |> addParam "Id" obj.Id
         |> addParam "Name" obj.Name
@@ -51,7 +55,7 @@ type AppMaterializer(conn) =
                 addParam "Identification_Tag" 2 >>
                 addParam "Identification_Text1" mainJar
         |> addParam "Background" obj.Background
-        |> addParam "Icon" obj.Icon
+        |> addParam "Icon" icon
         |> ignore
 
 type TagMaterializer(conn) =
@@ -69,3 +73,4 @@ type TagMaterializer(conn) =
         |> addParam "Name" obj.Name
         |> addParam "Color" obj.Color
         |> ignore
+

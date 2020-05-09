@@ -212,7 +212,7 @@ let getReadWriter<'a> () =
     (read, write)
 
 let sqlFlds<'a> sch =
-    let flds = (sch.tables.Item typeof<'a>.Name).fields |> Map.toArray |> Array.map fst
+    let flds = (sch.tables.Item typeof<'a>.Name).fields |> Seq.toArray |> Array.map (fun x -> x.name)
     flds |> Array.map (sprintf "@%s") |> String.concat ","
     
 
