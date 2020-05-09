@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using BenchmarkDotNet.Attributes;
 using Cobalt.Common.Data.Entities;
 
@@ -14,7 +15,7 @@ namespace Cobalt.Tests.Benchmarks
                 Id = 0L,
                 Name = "Chrome",
                 Background = "#fefefe",
-                Icon = new Lazy<byte[]>(() => new byte[0]),
+                Icon = new MemoryStream(),
                 Identification = AppIdentification.NewWin32("C:\\Desktop\\dumb_file.txt")
             };
 
@@ -32,17 +33,15 @@ namespace Cobalt.Tests.Benchmarks
                 TimeRange.Once o => o.End - o.Start,
                 TimeRange.Repeated r when r.Type == RepeatType.Weekly => (r.EndOfDay - r.StartOfDay) * 7,
                 TimeRange.Repeated r => r.EndOfDay - r.StartOfDay,
-                _ => throw new NotImplementedException(),
+                _ => throw new NotImplementedException()
             };
 
             var actions = alert.ExceededReaction switch
             {
                 var x when x.IsKill => 1,
                 Reaction.Message x => x.Message.Length,
-                _ => throw new NotImplementedException(),
+                _ => throw new NotImplementedException()
             };
-
-
         }
     }
 }
