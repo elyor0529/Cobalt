@@ -22,35 +22,41 @@ open Cobalt.Common.Data.Migrations.Meta
 [<AbstractClass>]
 type Materializer<'a>(conn, schema: Schema) =
 
-    member inline x.InsertCommand< ^T when ^T: (member Id: int64)> (o: ^T) =
-        if (^T : (member Id: int64) (o)) = 0L
-        then x.InsertWithoutIdCmd
-        else x.InsertCmd
+    let table = schema.tables.Item typeof<'a>.Name
+    let fields = (table.fields.Select (fun x -> x.name)).ToArray()
+    let fieldsCount = fields |> Array.length
+    let fieldsWithoutId = (fields |> Seq.except ["Id"]).ToArray()
+
+    let fieldsStr = fields |> Array.map ((+) "@") |> String.concat ","
+    let fieldsWithoutIdStr = fieldsWithoutId |> Array.map ((+) "@") |> String.concat ","
+    let columnsStr = fields |> String.concat ","
+    let columnsPrefixedStr = fields |> Array.map ((+) (table.name.ToLower() + ".")) |> String.concat ","
+    let columnsWithoutIdStr = fieldsWithoutId |> String.concat ","
+
+    let insertSql = sprintf "insert into %s(%s) values (%s); select last_insert_rowid()" table.name columnsStr fieldsStr
+    let insertWithoutIdSql = sprintf "insert into %s(%s) values (%s); select last_insert_rowid()" table.name columnsWithoutIdStr fieldsWithoutIdStr
+
+    let insertCmd =
+        let cmd = new SqliteCommand(insertSql, conn);
+        cmd.Prepare();
+        cmd
+    let insertWithoutIdCmd =
+        let cmd = new SqliteCommand(insertWithoutIdSql, conn);
+        cmd.Prepare();
+        cmd
 
     member _.Connection = conn
     member _.Schema = schema
-    member _.Table: Table = schema.tables.Item typeof<'a>.Name
-    member x.Fields = (x.Table.fields.Select (fun x -> x.name)).ToArray()
-    member x.FieldsCount = x.Fields |> Array.length
-    member x.FieldsWithoutId = (x.Fields |> Seq.except ["Id"]).ToArray()
+    member _.Table = table
+    member _.FieldsCount = fieldsCount
+    member _.ColumnsStr = columnsStr
+    member _.ColumnsPrefixedStr = columnsPrefixedStr
+    member _.ColumnsWithoutIdStr = columnsWithoutIdStr
 
-    member x.FieldsStr = x.Fields |> Array.map ((+) "@") |> String.concat ","
-    member x.FieldsWithoutIdStr = x.FieldsWithoutId |> Array.map ((+) "@") |> String.concat ","
-    member x.ColumnsStr = x.Fields |> String.concat ","
-    member x.ColumnsPrefixedStr = x.Fields |> Array.map ((+) (x.Table.name.ToLower() + ".")) |> String.concat ","
-    member x.ColumnsWithoutIdStr = x.FieldsWithoutId |> String.concat ","
-
-    member x.InsertSql = sprintf "insert into %s(%s) values (%s); select last_insert_rowid()" x.Table.name x.ColumnsStr x.FieldsStr
-    member x.InsertWithoutIdSql = sprintf "insert into %s(%s) values (%s); select last_insert_rowid()" x.Table.name x.ColumnsWithoutIdStr x.FieldsWithoutIdStr
-
-    member x.InsertCmd =
-        let cmd = new SqliteCommand(x.InsertSql, x.Connection);
-        cmd.Prepare();
-        cmd
-    member x.InsertWithoutIdCmd =
-        let cmd = new SqliteCommand(x.InsertWithoutIdSql, x.Connection);
-        cmd.Prepare();
-        cmd
+    member inline _.InsertCommand< ^T when ^T: (member Id: int64)> (o: ^T) =
+        if (^T : (member Id: int64) (o)) = 0L
+        then insertWithoutIdCmd
+        else insertCmd
 
     abstract member Materialize: int -> IDataReader -> 'a
     abstract member Dematerialize: 'a -> SqliteParameterCollection -> unit
