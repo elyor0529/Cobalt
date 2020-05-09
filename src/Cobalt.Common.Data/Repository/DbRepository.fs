@@ -19,6 +19,7 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
     let mapp = AppMaterializer(conn, schema)
     let mtag = TagMaterializer(conn, schema)
     let msess = SessionMaterializer(conn, schema)
+    let musage = UsageMaterializer(conn, schema)
 
     let cmd sql = new SqliteCommand(sql, conn)
     let singleReader sql =
@@ -46,7 +47,7 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
     member x.IdReader<'a> id = singleReader (sprintf "select * from %s where Id = %d" (typeof<'a>.Name) id)
 
     member inline private _.Insert< ^a when ^a: (member Id:int64)> (o:'a) (m: Materializer<'a>) =
-        let c = new SqliteCommand(m.InsertSql o, conn)
+        let c = m.InsertCommand o
         m.Dematerialize o c.Parameters
         c.ExecuteScalar() :?> int64
 
@@ -65,6 +66,9 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
                     box { o with Id = id; Apps = appsFor id } :?> 'a
                 | :? Session as o ->
                     let id = x.Insert o msess
+                    box { o with Id = id; } :?> 'a
+                | :? Usage as o ->
+                    let id = x.Insert o musage
                     box { o with Id = id; } :?> 'a
                 | _ -> failwithf "type %A not allowed for Insert" (obj.GetType())
 
@@ -87,6 +91,10 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
                     let reader = x.IdReader<Session> id
                     let session = msess.Materialize 0 reader
                     box session :?> 'a
+                | t when t = typeof<Usage> ->
+                    let reader = x.IdReader<Usage> id
+                    let usage = musage.Materialize 0 reader
+                    box usage :?> 'a
                 | _ -> failwithf "type %A not allowed for Get" typeof<'a>
 
         member _.InsertTagToApp app tag =

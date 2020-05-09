@@ -22,9 +22,10 @@ open Cobalt.Common.Data.Migrations.Meta
 [<AbstractClass>]
 type Materializer<'a>(conn, schema: Schema) =
 
-    member inline x.InsertSql< ^T when ^T: (member Id: int64)> (o: ^T) =
-        let (cols, flds) = if (^T : (member Id: int64) (o)) = 0L then (x.ColumnsWithoutIdStr, x.FieldsWithoutIdStr) else (x.ColumnsStr, x.FieldsStr)
-        sprintf "insert into %s(%s) values (%s); select last_insert_rowid()" x.Table.name cols flds
+    member inline x.InsertCommand< ^T when ^T: (member Id: int64)> (o: ^T) =
+        if (^T : (member Id: int64) (o)) = 0L
+        then x.InsertWithoutIdCmd
+        else x.InsertCmd
 
     member _.Connection = conn
     member _.Schema = schema
@@ -39,6 +40,17 @@ type Materializer<'a>(conn, schema: Schema) =
     member x.ColumnsPrefixedStr = x.Fields |> Array.map ((+) (x.Table.name.ToLower() + ".")) |> String.concat ","
     member x.ColumnsWithoutIdStr = x.FieldsWithoutId |> String.concat ","
 
+    member x.InsertSql = sprintf "insert into %s(%s) values (%s); select last_insert_rowid()" x.Table.name x.ColumnsStr x.FieldsStr
+    member x.InsertWithoutIdSql = sprintf "insert into %s(%s) values (%s); select last_insert_rowid()" x.Table.name x.ColumnsWithoutIdStr x.FieldsWithoutIdStr
+
+    member x.InsertCmd =
+        let cmd = new SqliteCommand(x.InsertSql, x.Connection);
+        cmd.Prepare();
+        cmd
+    member x.InsertWithoutIdCmd =
+        let cmd = new SqliteCommand(x.InsertWithoutIdSql, x.Connection);
+        cmd.Prepare();
+        cmd
 
     abstract member Materialize: int -> IDataReader -> 'a
     abstract member Dematerialize: 'a -> SqliteParameterCollection -> unit
@@ -106,7 +118,7 @@ type SessionMaterializer(conn, sch) =
         let title = reader.GetString(offset + 1)
         let cmdLine = reader.GetString(offset + 2)
         let appId = reader.GetInt64(offset + 3)
-        { Id = id; Title = title; CmdLine = cmdLine; App = { Id = appId; Name = ""; Identification = Win32 ""; Icon = null; Background = null; Tags = null } }
+        { Id = id; Title = title; CmdLine = cmdLine; App = { Id = appId; Name = null; Identification = Win32 null; Icon = null; Background = null; Tags = null } }
 
     override _.Dematerialize obj prms = 
         prms
@@ -114,4 +126,27 @@ type SessionMaterializer(conn, sch) =
         |> addParam "Title" obj.Title
         |> addParam "CmdLine" obj.CmdLine
         |> addParam "AppId" obj.App.Id
+        |> ignore
+
+type UsageMaterializer(conn, sch) =
+    inherit Materializer<Usage>(conn, sch)
+
+    override _.Materialize offset reader =
+        let id = reader.GetInt64(offset + 0)
+        let start = reader.GetInt64(offset + 1)
+        let ed = reader.GetInt64(offset + 2)
+        let sessid = reader.GetInt64(offset + 3)
+        {
+            Id = id;
+            Start = new DateTime(start, DateTimeKind.Utc);
+            End = new DateTime(ed, DateTimeKind.Utc);
+            Session = { Id = sessid; Title = null; CmdLine = null; App = Unchecked.defaultof<App> }
+        }
+
+    override _.Dematerialize obj prms = 
+        prms
+        |> autoGenId obj
+        |> addParam "Start" (obj.Start.ToUniversalTime().Ticks)
+        |> addParam "End" (obj.End.ToUniversalTime().Ticks)
+        |> addParam "SessionId" obj.Session.Id
         |> ignore
