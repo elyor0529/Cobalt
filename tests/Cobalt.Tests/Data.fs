@@ -102,9 +102,51 @@ type Repository () =
         test <@ toArray rapp2.Icon  = [|1uy; 2uy; 3uy; 4uy|] @>
         test <@ toArray rapp3.Icon  = [|2uy|] @>
 
-        test <@ { app1 with Icon = null } = { rapp1 with Icon = null } @>
-        test <@ { app2 with Icon = null } = { rapp2 with Icon = null } @>
-        test <@ { app3 with Icon = null } = { rapp3 with Icon = null } @>
+        test <@ { app1 with Icon = null; } = { rapp1 with Icon = null; Tags = null } @>
+        test <@ { app2 with Icon = null } = { rapp2 with Icon = null; Tags = null } @>
+        test <@ { app3 with Icon = null } = { rapp3 with Icon = null; Tags = null } @>
+
+    [<Fact>]
+    let ``insert tag and read it back`` () =
+        let tag1 = { Id = 2L; Name = "Tag1"; Color = "blue"; Apps = null }
+        repo.Insert tag1
+
+        let rtag1 = repo.Get<Tag> tag1.Id
+        test <@ tag1 = rtag1 @>
+
+    [<Fact>]
+    let ``inserted object with Id = 0 gets a new Id when inserted`` () =
+        let tag1 = { Id = 0L; Name = "Tag1"; Color = "blue"; Apps = null }
+        repo.Insert tag1
+
+        let rtag1 = conn.Query<Tag> "select * from tag"
+        test <@ rtag1.Single().Id <> 0L @>
+
+        let tag2 = { Id = 0L; Name = "Tag2"; Color = "red"; Apps = null }
+        repo.Insert tag2
+
+        let all = conn.Query<Tag> "select * from tag"
+        test <@ all.Count() = 2 @>
+
+        let rtag2 = conn.Query<Tag> "select * from tag where Color = 'red'"
+        test <@ rtag2.Single().Id = 2L @>
+
+    [<Fact>]
+    let ``add and remove tag to app`` () =
+        let app1 = { Id = 2L; Name = "App1"; Identification = UWP "Main"; Background = "black"; Icon = new MemoryStream([||]); Tags = null }
+        let tag1 = { Id = 1L; Name = "Tag1"; Color = "blue"; Apps = null }
+        repo.Insert app1
+        repo.Insert tag1
+
+        repo.InsertTagToApp app1 tag1
+
+        let rapp1 = repo.Get<App> app1.Id
+        let col = rapp1.Tags.Value;
+        test <@ { col.Single() with Apps = null } = tag1 @>
+
+        repo.DeleteTagToApp app1 tag1
+        let rapp2 = repo.Get<App> app1.Id
+        test <@ rapp2.Tags.Value.Count() = 0 @>
 
 
     interface IDisposable with

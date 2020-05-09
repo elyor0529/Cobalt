@@ -8,6 +8,10 @@ module Helpers =
     let addParam key value (prms : SqliteParameterCollection) =
         prms.AddWithValue(key, value) |> ignore
         prms
+    let inline autoGenId< ^T when ^T: (member Id: int64)> (o: ^T) = 
+        if (^T : (member Id: int64) (o)) <> 0L then
+            addParam "Id" (^T : (member Id: int64) (o))
+        else id
 
 open Helpers
 open System
@@ -16,7 +20,7 @@ open System.IO
 [<AbstractClass>]
 type Materializer<'a>(conn) =
     member _.Connection = conn
-    abstract member Materialize: int -> SqliteDataReader -> 'a
+    abstract member Materialize: int -> IDataReader -> 'a
     abstract member Dematerialize: 'a -> SqliteParameterCollection -> unit
 
 type AppMaterializer(conn) =
@@ -33,7 +37,7 @@ type AppMaterializer(conn) =
                     | 2L -> Java ident_text1
                     | _ -> failwith "unsupported tag"
         let bg = reader.GetString(offset + 4)
-        let icon = reader.GetStream(offset + 5)
+        let icon = (reader :?> SqliteDataReader).GetStream(offset + 5)
         { Id = id; Name = name; Identification = ident; Background = bg; Icon = icon; Tags = null; }
 
     override _.Dematerialize obj prms = 
@@ -41,7 +45,7 @@ type AppMaterializer(conn) =
         obj.Icon.CopyTo(mem)
         let icon = mem.ToArray()
         prms
-        |> addParam "Id" obj.Id
+        |> autoGenId obj
         |> addParam "Name" obj.Name
         |>
             match obj.Identification with
@@ -69,7 +73,7 @@ type TagMaterializer(conn) =
 
     override _.Dematerialize obj prms = 
         prms
-        |> addParam "Id" obj.Id
+        |> autoGenId obj
         |> addParam "Name" obj.Name
         |> addParam "Color" obj.Color
         |> ignore
