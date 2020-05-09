@@ -14,6 +14,7 @@ open Cobalt.Common.Data.Migrations.Meta
 open Microsoft.Data.Sqlite
 open System.Data
 open Dapper
+open System.IO
 
 [<Fact>]
 let ``adding numbers in FsUnit`` () = 
@@ -223,7 +224,7 @@ let ``fun stuff`` () =
     let mig = Migrator(conn) :> IMigrator
     let sch = mig.Migrate()
 
-    let app = { Id = 4L; Name = "Chrome"; Identification = UWP "Main"; Background = "black"; Icon = lazy [|1uy;2uy;3uy;4uy|]; Tags = null }
+    let app = { Id = 4L; Name = "Chrome"; Identification = UWP "Main"; Background = "black"; Icon = new MemoryStream([|1uy;2uy;3uy;4uy|]); Tags = null }
 
     let cmd = conn.CreateCommand()
     cmd.CommandText <- sprintf "insert into app values (%s)" (sqlFlds<App> sch)
@@ -236,7 +237,13 @@ let ``fun stuff`` () =
     let reader = conn.ExecuteReader("select * from app")
     test <@ reader.Read() @>
     let app2 = read false reader
-    test <@ app.Icon.Value = app2.Icon.Value @>
+    let s1 = Span<byte>()
+    let s2 = Span<byte>()
+    let r1 = app.Icon.Read(s1)
+    let r2 = app2.Icon.Read(s2)
+    let ss1 = s1.ToArray()
+    let ss2 = s2.ToArray()
+    test <@ r1 = r2 && ss1 = ss2 @>
     test <@ { app with Icon = null } = { app2 with Icon = null } @>
 
     let alert = {

@@ -13,6 +13,7 @@
     <Compile Include="Migrations\Meta.fs" />
     <Compile Include="Migrations\Migration1.fs" />
     <Compile Include="Migrations\Migrator.fs" />
+    <Compile Include="Repository\Materializers.fs" />
     <Compile Include="Repository\DbRepository.fs" />
   </ItemGroup>
 

@@ -1,7 +1,7 @@
 namespace Cobalt.Common.Data.Entities
 
 open System
-
+open System.IO
 
 type AppIdentification =
     | Win32 of Path: string
@@ -14,7 +14,7 @@ type App = {
     Name: string;
     Identification: AppIdentification;
     Background: string;
-    Icon: Lazy<byte[]>;
+    Icon: Stream
     Tags: Lazy<Tag seq>;
 }
 and [<CLIMutable>] Tag = {
