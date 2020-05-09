@@ -70,11 +70,13 @@ type BlobPropertyMeta (prop, ord) =
 
     override x.Read includeType data = 
         let v = data.GetValue(data.GetOrdinal(x.withType includeType x.Name)) :?> byte[]
-        box (lazy v)
+        box (new MemoryStream(v))
 
     default x.Write object parameters = 
-        let value = x.PropertyReader object :?> Lazy<byte[]>
-        parameters.AddWithValue(x.Name, value.Value) |> ignore
+        let buffer = Span<byte>()
+        let value = x.PropertyReader object :?> Stream
+        value.Read(buffer) |> ignore
+        parameters.AddWithValue(x.Name, buffer.ToArray()) |> ignore
 
 type NavigationPropertyMeta (prop, ord) = 
     inherit PropertyMeta(prop, ord)
@@ -105,7 +107,7 @@ let getDbType (t: Type) =
         | t when t = typeof<float32> -> Some DbType.Real
         | t when t = typeof<float> -> Some DbType.Real
         | t when t = typeof<byte[]> -> Some DbType.Blob
-        | t when t = typeof<Lazy<byte[]>> -> Some DbType.Blob
+        | t when t.IsSubclassOf typeof<Stream> -> Some DbType.Blob
         | t when t = typeof<Lazy<App seq>> -> None
         | t when t = typeof<Lazy<Tag seq>> -> None
         | t when isNav t -> Some (DbType.Nav t.Name)
@@ -198,7 +200,7 @@ let getReadWriter<'a> () =
             | t when t.Name = "Lazy`1" && t.GenericTypeArguments.[0].Name = "IEnumerable`1" && isNav t.GenericTypeArguments.[0].GenericTypeArguments.[0] ->
                 let p = EmptyPropertyMeta(prop, fst metas) :> PropertyMeta;
                 (p.UsedOrdinals() + (fst metas), p :: (snd metas))
-            | t when t = typeof<Lazy<byte[]>> ->
+            | t when t.IsSubclassOf typeof<Stream> ->
                 let p = BlobPropertyMeta(prop, fst metas) :> PropertyMeta;
                 (p.UsedOrdinals() + (fst metas), p :: (snd metas))
             | _ -> 
@@ -214,7 +216,6 @@ let sqlFlds<'a> sch =
     flds |> Array.map (sprintf "@%s") |> String.concat ","
     
 
-[<Fact>]
 let ``fun stuff`` () =
     let (read, write) = getReadWriter<App>()
     use conn = new SqliteConnection("Data Source=:memory:")
