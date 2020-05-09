@@ -52,11 +52,13 @@ type Materializer<'a>(conn, schema: Schema) =
     member _.ColumnsStr = columnsStr
     member _.ColumnsPrefixedStr = columnsPrefixedStr
     member _.ColumnsWithoutIdStr = columnsWithoutIdStr
+    member _.InsertWithoutIdCmd = insertWithoutIdCmd
+    member _.InsertCmd = insertCmd
 
-    member inline _.InsertCommand< ^T when ^T: (member Id: int64)> (o: ^T) =
+    member inline x.InsertCommand< ^T when ^T: (member Id: int64)> (o: ^T) =
         if (^T : (member Id: int64) (o)) = 0L
-        then insertWithoutIdCmd
-        else insertCmd
+        then x.InsertWithoutIdCmd
+        else x.InsertCmd
 
     abstract member Materialize: int -> IDataReader -> 'a
     abstract member Dematerialize: 'a -> SqliteParameterCollection -> unit
