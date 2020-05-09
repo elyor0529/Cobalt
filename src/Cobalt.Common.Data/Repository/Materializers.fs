@@ -52,8 +52,8 @@ type Materializer<'a>(conn, schema: Schema) =
     member _.ColumnsStr = columnsStr
     member _.ColumnsPrefixedStr = columnsPrefixedStr
     member _.ColumnsWithoutIdStr = columnsWithoutIdStr
-    member _.InsertWithoutIdCmd = insertWithoutIdCmd
-    member _.InsertCmd = insertCmd
+    member _.InsertWithoutIdCmd = insertWithoutIdCmd.Parameters.Clear(); insertWithoutIdCmd
+    member _.InsertCmd = insertCmd.Parameters.Clear(); insertCmd
 
     member inline x.InsertCommand< ^T when ^T: (member Id: int64)> (o: ^T) =
         if (^T : (member Id: int64) (o)) = 0L
