@@ -17,11 +17,11 @@ namespace Cobalt.Tests.Benchmarks
         private static readonly Random rng = new Random();
         private readonly string file = "testfile.db" + rng.Next();
 
+        private SqliteCommand cmd;
+
         private int i;
         private SqliteConnection Connection { get; set; }
         private IDbRepository Repository { get; set; }
-
-        private SqliteCommand cmd;
 
         private App app1 => new App
         {
