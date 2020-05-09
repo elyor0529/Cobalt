@@ -12,12 +12,13 @@ using Microsoft.Data.Sqlite;
 namespace Cobalt.Tests.Benchmarks
 {
     [MemoryDiagnoser]
-    public class DataBenchmarks
+    public class InsertSessionBenchmarks
     {
         private static readonly Random rng = new Random();
         private readonly string file = "testfile.db" + rng.Next();
 
         private SqliteCommand cmd;
+        private SqliteCommand cmd1;
 
         private int i;
         private SqliteConnection Connection { get; set; }
@@ -29,8 +30,10 @@ namespace Cobalt.Tests.Benchmarks
             Name = "Chrome",
             Background = "#fefefe",
             Icon = new MemoryStream(),
-            Identification = AppIdentification.NewWin32("C:\\Desktop\\dumb_file.txt" + i++)
+            Identification = AppIdentification.NewWin32("C:\\Desktop\\dumb_file.txt" + ++i)
         };
+
+        private Session sess1 => new Session { Id = 0L, CmdLine = "tits.exe what", Title = "hacked", App = app1 };
 
 
         [GlobalSetup]
@@ -47,6 +50,10 @@ namespace Cobalt.Tests.Benchmarks
                 "insert into App(Name, Identification_Tag, Identification_Text1, Background, Icon) values (@Name, @Identification_Tag, @Identification_Text1, @Background, @Icon); select last_insert_rowid()",
                 Connection);
             cmd.Prepare();
+            cmd1 = new SqliteCommand(
+                "insert into Session(Title, CmdLine, AppId) values (@Title, @CmdLine, @AppId); select last_insert_rowid()",
+                Connection);
+            cmd1.Prepare();
         }
 
         [GlobalCleanup]
@@ -60,6 +67,8 @@ namespace Cobalt.Tests.Benchmarks
         public void AddAppUsingRaw2()
         {
             var app = app1;
+            var sess = sess1;
+            sess.App = app;
             var text1 = app.Identification switch
             {
                 AppIdentification.UWP x => x.PRAID,
@@ -79,13 +88,26 @@ namespace Cobalt.Tests.Benchmarks
             app.Id = (long) cmd.ExecuteScalar();
             app.Icon = new SqliteBlob(Connection, "App", "Icon", app.Id);
             app.Tags = new Lazy<IEnumerable<Tag>>(); // needs more work to be realistic 
+
+            cmd1.Parameters.Clear();
+            cmd1.Parameters.AddRange(new[]
+            {
+                new SqliteParameter("Title", sess.Title),
+                new SqliteParameter("CmdLine", sess.CmdLine),
+                new SqliteParameter("AppId", sess.App.Id),
+            });
+            sess.Id = (long) cmd1.ExecuteScalar();
+
             Trace.Assert(app.Id != 0);
+            Trace.Assert(sess.Id != 0);
         }
 
         [Benchmark]
         public void AddAppUsingDapper()
         {
             var app = app1;
+            var sess = sess1;
+            sess.App = app;
             var text1 = app.Identification switch
             {
                 AppIdentification.UWP x => x.PRAID,
@@ -99,56 +121,36 @@ namespace Cobalt.Tests.Benchmarks
                 {
                     app.Name,
                     app.Background,
-                    Identification_Tag = app.Identification.Tag, Identification_Text1 = text1,
+                    Identification_Tag = app.Identification.Tag, Identification_Text1 = text1 + ++i,
                     Icon = ((MemoryStream) app.Icon).ToArray()
                 });
             app.Icon = new SqliteBlob(Connection, "App", "Icon", app.Id);
             app.Tags = new Lazy<IEnumerable<Tag>>(); // needs more work to be realistic 
+
+
+            sess.Id = Connection.ExecuteScalar<long>(
+                "insert into Session(Title, CmdLine, AppId) values (@Title, @CmdLine, @AppId); select last_insert_rowid()",
+                new
+                {
+                    sess.Title,
+                    sess.CmdLine,
+                    AppId = sess.App.Id
+                });
+
             Trace.Assert(app.Id != 0);
+            Trace.Assert(sess.Id != 0);
         }
 
         [Benchmark]
         public void AddAppUsingRepo()
         {
             var app = app1;
+            var sess = sess1;
             app = Repository.Insert(app);
+            sess.App = app;
+            sess = Repository.Insert(sess);
             Trace.Assert(app.Id != 0);
-        }
-
-        public void InsertApp()
-        {
-            var app = new App
-            {
-                Id = 0L,
-                Name = "Chrome",
-                Background = "#fefefe",
-                Icon = new MemoryStream(),
-                Identification = AppIdentification.NewWin32("C:\\Desktop\\dumb_file.txt")
-            };
-
-            var alert = new Alert
-            {
-                Id = 1L,
-                UsageLimit = TimeSpan.FromHours(4),
-                ExceededReaction = Reaction.NewMessage("pls no more web browsing"),
-                Target = Target.NewApp(app),
-                TimeRange = TimeRange.NewRepeated(RepeatType.Monthly, TimeSpan.FromHours(08), TimeSpan.FromHours(18))
-            };
-
-            var perDay = alert.TimeRange switch
-            {
-                TimeRange.Once o => o.End - o.Start,
-                TimeRange.Repeated r when r.Type == RepeatType.Weekly => (r.EndOfDay - r.StartOfDay) * 7,
-                TimeRange.Repeated r => r.EndOfDay - r.StartOfDay,
-                _ => throw new NotImplementedException()
-            };
-
-            var actions = alert.ExceededReaction switch
-            {
-                var x when x.IsKill => 1,
-                Reaction.Message x => x.Message.Length,
-                _ => throw new NotImplementedException()
-            };
+            Trace.Assert(sess.Id != 0);
         }
     }
 }

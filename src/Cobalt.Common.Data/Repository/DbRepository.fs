@@ -48,7 +48,7 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
 
     member x.IdReader<'a> id = singleReader (sprintf "select * from %s where Id = %d" (typeof<'a>.Name) id)
 
-    member inline private _.Insert< ^a when ^a: (member Id: int64)> (o:'a) (m: Materializer<'a>) =
+    member inline private _.Insert< ^a when ^a: ( member Id: int64)> (o:'a) (m: Materializer<'a>) =
         let c = m.InsertCommand
         m.Dematerialize o c.Parameters
         c.ExecuteScalar() :?> int64
