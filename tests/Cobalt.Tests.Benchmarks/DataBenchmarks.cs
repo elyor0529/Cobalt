@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using BenchmarkDotNet.Attributes;
 using Cobalt.Common.Data.Entities;
@@ -58,12 +59,15 @@ namespace Cobalt.Tests.Benchmarks
                 AppIdentification.Java x => x.MainJar,
                 _ => throw new NotImplementedException(),
             };
-            var cmd = new SqliteCommand("insert into App(Name, Identification_Tag, Identification_Text1, Background, Icon) values (@Name, @Identification_Tag, @Identification_Text1, @Background, @Icon)", Connection);
+            var cmd = new SqliteCommand("insert into App(Name, Identification_Tag, Identification_Text1, Background, Icon) values (@Name, @Identification_Tag, @Identification_Text1, @Background, @Icon); select last_insert_rowid()", Connection);
             cmd.Parameters.AddWithValue("Name", app.Name);
             cmd.Parameters.AddWithValue("Identification_Tag", app.Identification.Tag);
             cmd.Parameters.AddWithValue("Identification_Text1", text1);
             cmd.Parameters.AddWithValue("Background", app.Background);
             cmd.Parameters.AddWithValue("Icon", ((MemoryStream) app.Icon).ToArray());
+            app.Id = (long)cmd.ExecuteScalar();
+            app.Icon = new SqliteBlob(Connection, "App", "Icon", app.Id);
+            app.Tags = new Lazy<IEnumerable<Tag>>(); // needs more work to be realistic 
         }
 
         [Benchmark]
@@ -77,14 +81,16 @@ namespace Cobalt.Tests.Benchmarks
                 AppIdentification.Java x => x.MainJar,
                 _ => throw new NotImplementedException(),
             };
-            Connection.Execute(
-                "insert into App(Name, Identification_Tag, Identification_Text1, Background, Icon) values (@Name, @Identification_Tag, @Identification_Text1, @Background, @Icon)",
+            app.Id = Connection.ExecuteScalar<long>(
+                "insert into App(Name, Identification_Tag, Identification_Text1, Background, Icon) values (@Name, @Identification_Tag, @Identification_Text1, @Background, @Icon); select last_insert_rowid()",
                 new
                 {
                     Name = app.Name, Background = app.Background,
                     Identification_Tag = app.Identification.Tag, Identification_Text1 = text1,
                     Icon = ((MemoryStream) app.Icon).ToArray()
                 });
+            app.Icon = new SqliteBlob(Connection, "App", "Icon", app.Id);
+            app.Tags = new Lazy<IEnumerable<Tag>>(); // needs more work to be realistic 
         }
 
         [Benchmark]

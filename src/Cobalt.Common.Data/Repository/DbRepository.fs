@@ -4,8 +4,6 @@ open Cobalt.Common.Data.Entities
 open Cobalt.Common.Data.Migrations
 open Microsoft.Data.Sqlite
 open Dapper
-open System.Linq
-open Cobalt.Common.Data.Migrations.Meta
 
 type IDbRepository = 
     abstract member Insert<'a> : 'a -> 'a
@@ -20,6 +18,7 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
 
     let mapp = AppMaterializer(conn, schema)
     let mtag = TagMaterializer(conn, schema)
+    let msess = SessionMaterializer(conn, schema)
 
     let cmd sql = new SqliteCommand(sql, conn)
     let singleReader sql =
@@ -36,6 +35,7 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
     let exec sql p =
         conn.Execute(sql, p) |> ignore
 
+
     let tagsFor appId = 
         lazy reader "select * from tag where Id in (select TagId from App_Tag where AppId = @AppId)"
             {| AppId = appId |} (mtag.Materialize 0)
@@ -43,24 +43,29 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
         lazy reader "select * from app where Id in (select AppId from App_Tag where TagId = @TagId)"
             {| TagId = tagId |} (mapp.Materialize 0)
 
+    member x.IdReader<'a> id = singleReader (sprintf "select * from %s where Id = %d" (typeof<'a>.Name) id)
+
+    member inline private _.Insert< ^a when ^a: (member Id:int64)> (o:'a) (m: Materializer<'a>) =
+        let c = new SqliteCommand(m.InsertSql o, conn)
+        m.Dematerialize o c.Parameters
+        c.ExecuteScalar() :?> int64
+
     interface IDbRepository with
         member x.Insert obj = 
             match box obj with
                 | :? App as o ->
-                    let c = cmd (mapp.InsertSql o)
-                    mapp.Dematerialize o c.Parameters
-                    let id = c.ExecuteScalar() :?> int64
+                    let id = x.Insert o mapp
                     box { o with
                             Id = id;
                             Icon = new SqliteBlob(conn, "App", "Icon", id);
                             Tags = tagsFor id
                         } :?> 'a
                 | :? Tag as o ->
-                    let c = cmd (mtag.InsertSql o)
-                    mtag.Dematerialize o c.Parameters
-                    let id = c.ExecuteScalar() :?> int64
+                    let id = x.Insert o mtag
                     box { o with Id = id; Apps = appsFor id } :?> 'a
-                | :? Alert as o -> box o :?> 'a
+                | :? Session as o ->
+                    let id = x.Insert o msess
+                    box { o with Id = id; } :?> 'a
                 | _ -> failwithf "type %A not allowed for Insert" (obj.GetType())
 
         member x.Delete obj =
@@ -69,14 +74,20 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
                 | _ -> failwithf "type %A not allowed for Delete" (obj.GetType())
 
         member x.Get<'a> id = 
-            let reader = singleReader (sprintf "select * from %s where Id = %d" (typeof<'a>.Name) id)
             match typeof<'a> with
                 | t when t = typeof<App> ->
+                    let reader = x.IdReader<App> id
                     let app = mapp.Materialize 0 reader
-                    let app = { app with Tags = tagsFor app.Id }
-                    box app :?> 'a
+                    box { app with Tags = tagsFor app.Id } :?> 'a
                 | t when t = typeof<Tag> ->
-                    box (mtag.Materialize 0 reader) :?> 'a
+                    let reader = x.IdReader<Tag> id
+                    let tag = mtag.Materialize 0 reader
+                    box { tag with Apps = appsFor tag.Id } :?> 'a
+                | t when t = typeof<Session> ->
+                    let reader = singleReader (sprintf "select %s,%s from session session, app app where session.Id = %d and app.Id = s.AppId" msess.ColumnsPrefixedStr mapp.ColumnsPrefixedStr id)
+                    let session = msess.Materialize 0 reader
+                    let app = mapp.Materialize msess.FieldsCount reader
+                    box { session with App = app } :?> 'a
                 | _ -> failwithf "type %A not allowed for Get" typeof<'a>
 
         member _.InsertTagToApp app tag =

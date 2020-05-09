@@ -126,7 +126,7 @@ type Repository () =
         repo.Insert tag1 |> ignore
 
         let rtag1 = repo.Get<Tag> tag1.Id
-        test <@ tag1 = rtag1 @>
+        test <@ tag1 = { rtag1 with Apps = null } @>
 
     [<Fact>]
     let ``inserted object with Id = 0 gets a new Id when inserted`` () =
@@ -163,6 +163,17 @@ type Repository () =
         repo.DeleteTagToApp app1 tag1
         let rapp2 = repo.Get<App> app1.Id
         test <@ rapp2.Tags.Value.Count() = 0 @>
+
+
+    [<Fact>]
+    let ``insert session`` () =
+        let app1 = { Id = 3L; Name = "App2"; Identification = Win32 @"C:\Users\default\12.exe"; Background = "grey"; Icon = new MemoryStream([|1uy;2uy;3uy;4uy|]); Tags = null }
+        let sess1 = { Id = 0L; Title = "Window1"; CmdLine = "youface.exe boobies"; App = app1 }
+
+        let rapp1 = repo.Insert app1
+        let rsess1 = repo.Insert sess1
+
+        test <@ { rsess1 with Id = 0L } = sess1 @>
 
 
     interface IDisposable with

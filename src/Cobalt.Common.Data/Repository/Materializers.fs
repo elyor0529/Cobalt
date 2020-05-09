@@ -30,11 +30,13 @@ type Materializer<'a>(conn, schema: Schema) =
     member _.Schema = schema
     member _.Table: Table = schema.tables.Item typeof<'a>.Name
     member x.Fields = (x.Table.fields.Select (fun x -> x.name)).ToArray()
+    member x.FieldsCount = x.Fields |> Array.length
     member x.FieldsWithoutId = (x.Fields |> Seq.except ["Id"]).ToArray()
 
     member x.FieldsStr = x.Fields |> Array.map ((+) "@") |> String.concat ","
     member x.FieldsWithoutIdStr = x.FieldsWithoutId |> Array.map ((+) "@") |> String.concat ","
     member x.ColumnsStr = x.Fields |> String.concat ","
+    member x.ColumnsPrefixedStr = x.Fields |> Array.map ((+) (x.Table.name.ToLower() + ".")) |> String.concat ","
     member x.ColumnsWithoutIdStr = x.FieldsWithoutId |> String.concat ","
 
 
@@ -96,3 +98,19 @@ type TagMaterializer(conn, sch) =
         |> addParam "Color" obj.Color
         |> ignore
 
+type SessionMaterializer(conn, sch) =
+    inherit Materializer<Session>(conn, sch)
+
+    override _.Materialize offset reader =
+        let id = reader.GetInt64(offset + 0)
+        let title = reader.GetString(offset + 1)
+        let cmdLine = reader.GetString(offset + 2)
+        { Id = id; Title = title; CmdLine = cmdLine; App = Unchecked.defaultof<App> }
+
+    override _.Dematerialize obj prms = 
+        prms
+        |> autoGenId obj
+        |> addParam "Title" obj.Title
+        |> addParam "CmdLine" obj.CmdLine
+        |> addParam "AppId" obj.App.Id
+        |> ignore
