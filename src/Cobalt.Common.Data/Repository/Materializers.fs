@@ -12,12 +12,19 @@ module Helpers =
     let addParam key value (prms : SqliteParameterCollection) =
         prms.AddWithValue(key, value) |> ignore
         prms
+
     let toDateTime ticks = DateTime(ticks, DateTimeKind.Utc).ToLocalTime()
     let fromDateTime (dt:DateTime) = dt.ToUniversalTime().Ticks
+    let toTimespan ticks = TimeSpan(ticks)
+    let fromTimeSpan (ts:TimeSpan) = ts.Ticks
+
     let inline autoGenId< ^T when ^T: (member Id: int64)> (o: ^T) = 
         if (^T : (member Id: int64) (o)) <> 0L then
             addParam "Id" (^T : (member Id: int64) (o))
-        else id
+        else
+            addParam "Id" (DBNull.Value)
+    let appWith id = { Id = id; Name = null; Identification = Win32 null; Icon = null; Background = null; Tags = null  }
+    let tagWith id = { Id = id; Name = null; Color = null; Apps = null }
 
 open Helpers
 
@@ -27,23 +34,15 @@ type Materializer<'a>(conn, schema: Schema) =
     let table = schema.tables.Item typeof<'a>.Name
     let fields = (table.fields.Select (fun x -> x.name)).ToArray()
     let fieldsCount = fields |> Array.length
-    let fieldsWithoutId = (fields |> Seq.except ["Id"]).ToArray()
 
     let fieldsStr = fields |> Array.map ((+) "@") |> String.concat ","
-    let fieldsWithoutIdStr = fieldsWithoutId |> Array.map ((+) "@") |> String.concat ","
     let columnsStr = fields |> String.concat ","
     let columnsPrefixedStr = fields |> Array.map ((+) (table.name.ToLower() + ".")) |> String.concat ","
-    let columnsWithoutIdStr = fieldsWithoutId |> String.concat ","
 
     let insertSql = sprintf "insert into %s(%s) values (%s); select last_insert_rowid()" table.name columnsStr fieldsStr
-    let insertWithoutIdSql = sprintf "insert into %s(%s) values (%s); select last_insert_rowid()" table.name columnsWithoutIdStr fieldsWithoutIdStr
 
     let insertCmd =
         let cmd = new SqliteCommand(insertSql, conn);
-        cmd.Prepare();
-        cmd
-    let insertWithoutIdCmd =
-        let cmd = new SqliteCommand(insertWithoutIdSql, conn);
         cmd.Prepare();
         cmd
 
@@ -53,14 +52,7 @@ type Materializer<'a>(conn, schema: Schema) =
     member _.FieldsCount = fieldsCount
     member _.ColumnsStr = columnsStr
     member _.ColumnsPrefixedStr = columnsPrefixedStr
-    member _.ColumnsWithoutIdStr = columnsWithoutIdStr
-    member _.InsertWithoutIdCmd = insertWithoutIdCmd.Parameters.Clear(); insertWithoutIdCmd
-    member _.InsertCmd = insertCmd.Parameters.Clear(); insertCmd
-
-    member inline x.InsertCommand< ^T when ^T: (member Id: int64)> (o: ^T) =
-        if (^T : (member Id: int64) (o)) = 0L
-        then x.InsertWithoutIdCmd
-        else x.InsertCmd
+    member _.InsertCommand = insertCmd.Parameters.Clear(); insertCmd
 
     abstract member Materialize: int -> IDataReader -> 'a
     abstract member Dematerialize: 'a -> SqliteParameterCollection -> unit
@@ -128,7 +120,7 @@ type SessionMaterializer(conn, sch) =
         let title = reader.GetString(offset + 1)
         let cmdLine = reader.GetString(offset + 2)
         let appId = reader.GetInt64(offset + 3)
-        { Id = id; Title = title; CmdLine = cmdLine; App = { Id = appId; Name = null; Identification = Win32 null; Icon = null; Background = null; Tags = null } }
+        { Id = id; Title = title; CmdLine = cmdLine; App = appWith appId }
 
     override _.Dematerialize obj prms = 
         prms
@@ -179,4 +171,76 @@ type SystemEventMaterializer(conn, sch) =
         |> autoGenId obj
         |> addParam "Timestamp" (fromDateTime obj.Timestamp)
         |> addParam "Kind" (LanguagePrimitives.EnumToValue obj.Kind)
+        |> ignore
+
+type AlertMaterializer(conn, sch) = 
+    inherit Materializer<Alert>(conn, sch)
+
+    override _.Materialize offset reader =
+        let id = reader.GetInt64(offset + 0)
+        let target_appid = reader.GetValue(offset + 1)
+        let target_tagid = reader.GetValue(offset + 2)
+        let timerange_tag = reader.GetInt64(offset + 3)
+        let timerange_integer1 = reader.GetInt64(offset + 4)
+        let timerange_integer2 = reader.GetInt64(offset + 5)
+        let timerange_integer3 = reader.GetValue(offset + 6)
+        let usagelimit = reader.GetInt64(offset + 7)
+        let exceededreaction_tag = reader.GetInt64(offset + 8)
+        let exceededreaction_text1 = reader.GetValue(offset + 9)
+        
+        let target =
+            if target_appid :? int64 then 
+                appWith (target_appid :?> int64) |> App
+            else
+                tagWith (target_tagid :?> int64) |> Tag
+        let timerange =
+            match timerange_tag with
+                | 0L -> Once (toDateTime timerange_integer1, toDateTime timerange_integer2)
+                | 1L -> Repeated (LanguagePrimitives.EnumOfValue timerange_integer1, toTimespan timerange_integer2, toTimespan (timerange_integer3 :?> int64))
+                | _ -> failwith "Unsupported"
+        let exceededreaction =
+            match exceededreaction_tag with
+                | 0L -> Kill
+                | 1L -> Message (exceededreaction_text1 :?> string)
+                | _ -> failwith "Unsupported"
+        {
+            Id = id;
+            Target = target;
+            TimeRange = timerange;
+            UsageLimit = (toTimespan usagelimit);
+            ExceededReaction = exceededreaction;
+        }
+
+    override _.Dematerialize obj prms = 
+        prms
+        |> autoGenId obj
+        |>
+            match obj.Target with
+            | App app ->
+                addParam "Target_AppId" app.Id >>
+                addParam "Target_TagId" DBNull.Value
+            | Tag tag ->
+                addParam "Target_AppId" DBNull.Value >>
+                addParam "Target_TagId" tag.Id
+        |>
+            match obj.TimeRange with
+            | Once (start, ed) ->
+                addParam "TimeRange_Tag" 0 >>
+                addParam "TimeRange_Integer1" (fromDateTime start) >>
+                addParam "TimeRange_Integer2" (fromDateTime ed) >>
+                addParam "TimeRange_Integer3" DBNull.Value
+            | Repeated (typ, sod, eod) ->
+                addParam "TimeRange_Tag" 1 >>
+                addParam "TimeRange_Integer1" (LanguagePrimitives.EnumToValue typ) >>
+                addParam "TimeRange_Integer2" (fromTimeSpan sod) >>
+                addParam "TimeRange_Integer3" (fromTimeSpan eod)
+        |> addParam "UsageLimit" (fromTimeSpan obj.UsageLimit)
+        |> 
+            match obj.ExceededReaction with
+            | Kill -> 
+                addParam "ExceededReaction_Tag" 0 >>
+                addParam "ExceededReaction_Text1" DBNull.Value
+            | Message msg -> 
+                addParam "ExceededReaction_Tag" 1 >>
+                addParam "ExceededReaction_Text1" msg
         |> ignore

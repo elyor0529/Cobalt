@@ -196,6 +196,40 @@ type Repository () =
         let sess2 = rusage1.Session
         test <@ sess2.Id = sess1.Id @>
 
+    [<Fact>]
+    let ``insert se`` () =
+        let now = DateTime.Now
+        let se1 = { Id = 0L; Timestamp = now; Kind = SystemEventKind.Idle }
+
+        let rse1 = repo.Insert se1
+        test <@ { rse1 with Id = 0L } = se1 @>
+
+        let rse1 = repo.Get<SystemEvent> rse1.Id
+        test <@ { rse1 with Id = 0L } = se1 @>
+
+    [<Fact>]
+    let ``insert alert`` () =
+        let now = DateTime.Now
+        let app1 = { Id = 3L; Name = "App2"; Identification = Win32 @"C:\Users\default\12.exe"; Background = "grey"; Icon = new MemoryStream([|1uy;2uy;3uy;4uy|]); Tags = null }
+        let tag1 = { Id = 1L; Name = "Tag1"; Color = "blue"; Apps = null }
+        let alt1 = { Id = 0L; Target = App app1; TimeRange = Once (now.AddHours(5.0), now.AddHours(10.0)); UsageLimit = TimeSpan.FromHours(8.0); ExceededReaction = Kill }
+        let alt2 = { Id = 0L; Target = Tag tag1; TimeRange = Repeated (RepeatType.Monthly, now.TimeOfDay, now.TimeOfDay.Add(TimeSpan(2,0,0))); UsageLimit = TimeSpan.FromHours(2.0); ExceededReaction = Message "boobies?" }
+
+        let rapp1 = repo.Insert app1
+        let rtag1 = repo.Insert tag1
+        let alt1 = { alt1 with Target = App rapp1 }
+        let alt2 = { alt2 with Target = Tag rtag1 }
+        let ralt1 = repo.Insert alt1
+        let ralt2 = repo.Insert alt2
+
+        let ralt1 = repo.Get<Alert> ralt1.Id
+        let ralt2 = repo.Get<Alert> ralt2.Id
+        let ralt1id = match ralt1.Target with | Tag t -> t.Id; | App a -> a.Id
+        let ralt2id = match ralt2.Target with | Tag t -> t.Id; | App a -> a.Id
+        test <@ rapp1.Id = ralt1id @>
+        test <@ rtag1.Id = ralt2id @>
+        test <@ { ralt1 with Target = App app1; Id = 0L } = { alt1 with Target = App app1; Id = 0L } @>
+        test <@ { ralt2 with Target = Tag tag1; Id = 0L } = { alt2 with Target = Tag tag1; Id = 0L } @>
 
     interface IDisposable with
         member _.Dispose () = 

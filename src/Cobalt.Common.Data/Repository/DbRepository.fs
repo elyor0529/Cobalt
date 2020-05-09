@@ -20,6 +20,8 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
     let mtag = TagMaterializer(conn, schema)
     let msess = SessionMaterializer(conn, schema)
     let musage = UsageMaterializer(conn, schema)
+    let mse = SystemEventMaterializer(conn, schema)
+    let malt = AlertMaterializer(conn, schema)
 
     let cmd sql = new SqliteCommand(sql, conn)
     let singleReader sql =
@@ -46,31 +48,39 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
 
     member x.IdReader<'a> id = singleReader (sprintf "select * from %s where Id = %d" (typeof<'a>.Name) id)
 
-    member inline private _.Insert< ^a when ^a: (member Id:int64)> (o:'a) (m: Materializer<'a>) =
-        let c = m.InsertCommand o
+    member inline private _.Insert< ^a when ^a: (member Id: int64)> (o:'a) (m: Materializer<'a>) =
+        let c = m.InsertCommand
         m.Dematerialize o c.Parameters
         c.ExecuteScalar() :?> int64
 
     interface IDbRepository with
         member x.Insert obj = 
-            match box obj with
+            let ret =
+                match box obj with
                 | :? App as o ->
                     let id = x.Insert o mapp
                     box { o with
                             Id = id;
                             Icon = new SqliteBlob(conn, "App", "Icon", id);
                             Tags = tagsFor id
-                        } :?> 'a
+                        }
                 | :? Tag as o ->
                     let id = x.Insert o mtag
-                    box { o with Id = id; Apps = appsFor id } :?> 'a
+                    box { o with Id = id; Apps = appsFor id }
                 | :? Session as o ->
                     let id = x.Insert o msess
-                    box { o with Id = id; } :?> 'a
+                    box { o with Id = id; }
                 | :? Usage as o ->
                     let id = x.Insert o musage
-                    box { o with Id = id; } :?> 'a
+                    box { o with Id = id; }
+                | :? SystemEvent as o ->
+                    let id = x.Insert o mse
+                    box { o with Id = id; }
+                | :? Alert as o ->
+                    let id = x.Insert o malt
+                    box { o with Id = id; }
                 | _ -> failwithf "type %A not allowed for Insert" (obj.GetType())
+            ret :?> 'a
 
         member x.Delete obj =
             match box obj with
@@ -95,6 +105,14 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
                     let reader = x.IdReader<Usage> id
                     let usage = musage.Materialize 0 reader
                     box usage :?> 'a
+                | t when t = typeof<SystemEvent> ->
+                    let reader = x.IdReader<SystemEvent> id
+                    let se = mse.Materialize 0 reader
+                    box se :?> 'a
+                | t when t = typeof<Alert> ->
+                    let reader = x.IdReader<Alert> id
+                    let alt = malt.Materialize 0 reader
+                    box alt :?> 'a
                 | _ -> failwithf "type %A not allowed for Get" typeof<'a>
 
         member _.InsertTagToApp app tag =
