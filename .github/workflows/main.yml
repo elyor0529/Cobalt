@@ -23,3 +23,5 @@ jobs:
       run: dotnet build --configuration Release --no-restore
     - name: Test
       run: dotnet test --no-restore --verbosity normal
+    - name: Benchmark
+      run: dotnet run --project tests/Cobalt.Tests.Benchmarks/Cobalt.Tests.Benchmarks.csproj --no-restore -c Release
