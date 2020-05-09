@@ -20,6 +20,8 @@ namespace Cobalt.Tests.Benchmarks
         private SqliteConnection Connection { get; set; }
         private IDbRepository Repository { get; set; }
 
+        private SqliteCommand cmd;
+
         private App app1 => new App
         {
             Id = 0L,
@@ -40,6 +42,10 @@ namespace Cobalt.Tests.Benchmarks
             Connection.Open();
             var migrations = new Migrator(Connection);
             Repository = new DbRepository(Connection, migrations);
+            cmd = new SqliteCommand(
+                "insert into App(Name, Identification_Tag, Identification_Text1, Background, Icon) values (@Name, @Identification_Tag, @Identification_Text1, @Background, @Icon); select last_insert_rowid()",
+                Connection);
+            cmd.Prepare();
         }
 
         [GlobalCleanup]
@@ -60,9 +66,7 @@ namespace Cobalt.Tests.Benchmarks
                 AppIdentification.Java x => x.MainJar,
                 _ => throw new NotImplementedException()
             };
-            var cmd = new SqliteCommand(
-                "insert into App(Name, Identification_Tag, Identification_Text1, Background, Icon) values (@Name, @Identification_Tag, @Identification_Text1, @Background, @Icon); select last_insert_rowid()",
-                Connection);
+            cmd.Parameters.Clear();
             cmd.Parameters.AddRange(new[]
             {
                 new SqliteParameter("Name", app.Name),
