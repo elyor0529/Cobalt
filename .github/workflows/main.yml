@@ -28,10 +28,11 @@ jobs:
     - uses: actions/upload-artifact@v2
       name: Upload Benchmark Results
       with:
-        name: BenchmarkResults
+        name: Benchmarks
         path: .\BenchmarkDotNet.Artifacts\results\*.html
     - uses: actions/upload-artifact@v2
       name: Upload Test Results
+      if: failure()
       with:
-        name: TestResults
-        path: .\TestResults.trx
+        name: Tests
+        path: .\tests\Cobalt.Tests\TestResults\TestResults.trx
