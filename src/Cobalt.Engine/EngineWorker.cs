@@ -18,6 +18,7 @@ namespace Cobalt.Engine
         private readonly ForegroundWindowWatcher _fgWinWatcher;
         private readonly ILogger<EngineWorker> _logger;
         private readonly MessageLoop _msgLoop;
+        private SystemEventWatcher _sysWatcher;
 
         public EngineWorker(ILogger<EngineWorker> logger, EngineService engineSvc)
         {
@@ -25,6 +26,7 @@ namespace Cobalt.Engine
             _engineSvc = engineSvc;
             _msgLoop = new MessageLoop();
             _fgWinWatcher = new ForegroundWindowWatcher();
+            _sysWatcher = new SystemEventWatcher();
         }
 
         private async Task Work(CancellationToken stoppingToken)
@@ -35,7 +37,10 @@ namespace Cobalt.Engine
             _fgWinWatcher.Count().Subscribe(x =>
                 _engineSvc.PushUsageSwitch(new UsageSwitch {UsageId = x}));
 
+            _sysWatcher.Subscribe(x => _logger.LogDebug("{Timestamp}: {Kind}", x.Timestamp.ToString(), x.Kind.ToString()));
+
             _fgWinWatcher.Watch();
+            _sysWatcher.Watch();
 
             stoppingToken.Register(() =>
             {

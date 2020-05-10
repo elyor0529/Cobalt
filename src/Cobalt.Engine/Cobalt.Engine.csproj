@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Cobalt.Common.Communication\Cobalt.Common.Communication.csproj" />
+    <ProjectReference Include="..\Cobalt.Common.Data\Cobalt.Common.Data.fsproj" />
     <ProjectReference Include="..\Cobalt.Common.Utils\Cobalt.Common.Utils.csproj" />
   </ItemGroup>
 
