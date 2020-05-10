@@ -13,7 +13,7 @@ namespace Cobalt.Engine
             CreateHostBuilder(args).Build().Run();
         }
 
-        public static IWebHostBuilder CreateHostBuilder(string[] args)
+        private static IWebHostBuilder CreateHostBuilder(string[] args)
         {
             return WebHost.CreateDefaultBuilder(args)
                 .ConfigureLogging(logging => { logging.SetMinimumLevel(LogLevel.Trace); })

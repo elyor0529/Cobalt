@@ -4,18 +4,18 @@ using System.Reactive.Subjects;
 using Cobalt.Common.Communication;
 using Cobalt.Common.Communication.Messages;
 
-namespace Cobalt.Engine
+namespace Cobalt.Engine.Services
 {
     public class EngineService : IEngineService
     {
-        private readonly Subject<ForegroundWindowSwitch> _fgWinSwitches = new Subject<ForegroundWindowSwitch>();
+        private readonly Subject<UsageSwitch> _fgWinSwitches = new Subject<UsageSwitch>();
 
-        public IAsyncEnumerable<ForegroundWindowSwitch> ForegroundWindowSwitches()
+        public IAsyncEnumerable<UsageSwitch> UsageSwitches()
         {
             return _fgWinSwitches.ToAsyncEnumerable();
         }
 
-        public void PushForegroundWindowSwitch(ForegroundWindowSwitch sw)
+        public void PushUsageSwitch(UsageSwitch sw)
         {
             _fgWinSwitches.OnNext(sw);
         }

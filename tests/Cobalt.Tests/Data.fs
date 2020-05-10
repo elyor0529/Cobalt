@@ -231,65 +231,6 @@ type Repository () =
         test <@ { ralt1 with Target = App app1; Id = 0L } = { alt1 with Target = App app1; Id = 0L } @>
         test <@ { ralt2 with Target = Tag tag1; Id = 0L } = { alt2 with Target = Tag tag1; Id = 0L } @>
 
-    [<Fact>]
-    let ``manual connection``() =
-        let rng = new Random();
-        let file = sprintf "testfile%d.db" (rng.Next())
-        let builder = new SqliteConnectionStringBuilder();
-        builder.DataSource <- file;
-        builder.ForeignKeys <- Nullable(true);
-        let Connection = new SqliteConnection(builder.ToString());
-        Connection.Open();
-        let migrations = new Migrator(Connection);
-        let Repository = new DbRepository(Connection, migrations);
-        let cmd = new SqliteCommand("insert into App(Name, Identification_Tag, Identification_Text1, Background, Icon) values (@Name, @Identification_Tag, @Identification_Text1, @Background, @Icon); select last_insert_rowid()", Connection);
-        cmd.Prepare();
-        let cmd1 = new SqliteCommand("insert into Session(Title, CmdLine, AppId) values (@Title, @CmdLine, @AppId); select last_insert_rowid()", Connection);
-        cmd1.Prepare();
-
-        let app1 ={
-            Id = 0L;
-            Name = "Chrome";
-            Background = "#fefefe";
-            Icon = new MemoryStream();
-            Identification = Win32 ("C:\\Desktop\\dumb_file.txt");
-            Tags = null
-        }
-
-        let sess =  {
-            Id = 0L;
-            CmdLine = "tits.exe what";
-            Title = "hacked";
-            App = app1;
-        }
-
-        let text1 = "what"
-
-        let app = app1;
-        let id = Connection.ExecuteScalar<int64>(
-            "insert into App(Name, Identification_Tag, Identification_Text1, Background, Icon) values (@Name, @Identification_Tag, @Identification_Text1, @Background, @Icon); select last_insert_rowid()",
-            {|
-                Name = app.Name;
-                Background = app.Background;
-                Identification_Tag = 0L;
-                Identification_Text1 = text1;
-                Icon = (app.Icon :?> MemoryStream).ToArray()
-            |})
-        let icon = new SqliteBlob(Connection, "App", "Icon", id);
-        let tags = new Lazy<IEnumerable<Tag>>(); // needs more work to be realistic 
-        let app = { app with Id = id; Icon = icon; Tags = tags }
-        let sess = {sess with App = app}
-
-
-        sess.Id = Connection.ExecuteScalar<int64>(
-            "insert into Session(Title, CmdLine, AppId) values (@Title, @CmdLine, @AppId); select last_insert_rowid()",
-            {|
-                Title = sess.Title;
-                CmdLine = sess.CmdLine;
-                AppId = sess.App.Id;
-            |});
-
-        
 
     interface IDisposable with
         member _.Dispose () = 

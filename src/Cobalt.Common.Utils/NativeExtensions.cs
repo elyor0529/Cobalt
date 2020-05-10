@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace Cobalt.Common.Utils
 {
-    public static class Extensions
+    public static class NativeExtensions
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CheckValid(this bool b)

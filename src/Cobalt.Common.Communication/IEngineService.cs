@@ -7,6 +7,7 @@ namespace Cobalt.Common.Communication
     [ServiceContract]
     public interface IEngineService
     {
-        public IAsyncEnumerable<ForegroundWindowSwitch> ForegroundWindowSwitches();
+        [OperationContract]
+        public IAsyncEnumerable<UsageSwitch> UsageSwitches();
     }
 }

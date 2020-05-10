@@ -1,5 +1,6 @@
 ﻿using System;
 using Cobalt.Common.Utils;
+using Cobalt.Engine.Extractors;
 using Vanara.PInvoke;
 
 namespace Cobalt.Engine.Watchers
@@ -38,9 +39,9 @@ namespace Cobalt.Engine.Watchers
             Events.OnNext(new WindowInfo {ActivatedTimestamp = dwmsTimestamp});
         }
 
-        private DateTimeOffset GetDwmsTimestamp(uint dwmseventtime)
+        private DateTime GetDwmsTimestamp(uint dwmseventtime)
         {
-            return DateTimeOffset.Now.AddMilliseconds(dwmseventtime - Environment.TickCount);
+            return DateTime.Now.AddMilliseconds(dwmseventtime - Environment.TickCount);
         }
     }
 }

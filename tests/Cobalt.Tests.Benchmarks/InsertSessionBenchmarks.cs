@@ -33,7 +33,7 @@ namespace Cobalt.Tests.Benchmarks
             Identification = AppIdentification.NewWin32("C:\\Desktop\\dumb_file.txt" + ++i)
         };
 
-        private Session sess1 => new Session { Id = 0L, CmdLine = "tits.exe what", Title = "hacked", App = app1 };
+        private Session sess1 => new Session {Id = 0L, CmdLine = "tits.exe what", Title = "hacked", App = app1};
 
 
         [GlobalSetup]
@@ -94,7 +94,7 @@ namespace Cobalt.Tests.Benchmarks
             {
                 new SqliteParameter("Title", sess.Title),
                 new SqliteParameter("CmdLine", sess.CmdLine),
-                new SqliteParameter("AppId", sess.App.Id),
+                new SqliteParameter("AppId", sess.App.Id)
             });
             sess.Id = (long) cmd1.ExecuteScalar();
 
