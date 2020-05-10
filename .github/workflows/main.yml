@@ -22,6 +22,17 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore
     - name: Test
-      run: dotnet test --no-restore --verbosity normal
+      run: dotnet test --no-restore --verbosity normal --logger "trx;LogFileName=TestResults.trx"
     - name: Benchmark
       run: dotnet run --project tests/Cobalt.Tests.Benchmarks/Cobalt.Tests.Benchmarks.csproj --no-restore -c Release
+    - uses: actions/upload-artifact@v2
+      name: Upload Benchmark Results
+      with:
+        name: Benchmarks
+        path: .\BenchmarkDotNet.Artifacts\results\*.html
+    - uses: actions/upload-artifact@v2
+      name: Upload Test Results
+      if: failure()
+      with:
+        name: Tests
+        path: .\tests\Cobalt.Tests\TestResults\TestResults.trx
