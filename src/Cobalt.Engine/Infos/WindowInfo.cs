@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Diagnostics;
 
-namespace Cobalt.Engine.Extractors
+namespace Cobalt.Engine.Infos
 {
     public class WindowInfo
     {

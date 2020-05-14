@@ -1,11 +1,12 @@
 ﻿using System;
+using System.Text;
 using Cobalt.Common.Utils;
-using Cobalt.Engine.Extractors;
+using Cobalt.Engine.Infos;
 using Vanara.PInvoke;
 
 namespace Cobalt.Engine.Watchers
 {
-    public class ForegroundWindowWatcher : Watcher<WindowInfo>
+    public class ForegroundWindowWatcher : Watcher<ForegroundWindowSwitch>
     {
         private User32.WinEventProc _foregroundWindowChanged;
         private User32.HWINEVENTHOOK _hook;
@@ -35,8 +36,13 @@ namespace Cobalt.Engine.Watchers
             int idchild, uint ideventthread, uint dwmseventtime)
         {
             var dwmsTimestamp = GetDwmsTimestamp(dwmseventtime);
-            if (!User32.IsWindowVisible(hwnd)) return;
-            Events.OnNext(new WindowInfo {ActivatedTimestamp = dwmsTimestamp});
+            if (!User32.IsWindow(hwnd) || !User32.IsWindowVisible(hwnd) || User32.IsIconic(hwnd)) return;
+            var tid = User32.GetWindowThreadProcessId(hwnd, out var pid);
+            var length = User32.GetWindowTextLength(hwnd);
+            if (length == 0) return;
+            var title = new StringBuilder(length);
+            User32.GetWindowText(hwnd, title, length + 1);
+            Events.OnNext(new ForegroundWindowSwitch(dwmsTimestamp, new BasicWindowInfo(pid, tid, hwnd, title.ToString())));
         }
 
         private DateTime GetDwmsTimestamp(uint dwmseventtime)
