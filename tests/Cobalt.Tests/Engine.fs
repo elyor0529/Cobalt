@@ -12,12 +12,14 @@ let ``switching foreground with two apps`` () =
     use proc1 = new Proc "winver.exe"
     use proc2 = new Proc "notepad.exe"
 
-    use fgWatcher = new ForegroundWindowWatcher()
+    let fgWatcher = new ForegroundWindowWatcher()
+    let cts = new CancellationTokenSource()
 
     async {
         fgWatcher.Watch()
-        let msgLoop = MessageLoop()
-        msgLoop.Run()
+        let msgLoop = WatchLoop()
+        let! _ = msgLoop.Run(cts.Token).AsTask() |> Async.AwaitTask
+        fgWatcher.Dispose()
     } |> Async.Start
 
     let e = monitor fgWatcher (fun () -> Thread.Sleep(1000))
@@ -31,6 +33,7 @@ let ``switching foreground with two apps`` () =
 
     let e = monitor fgWatcher (fun () -> delayed proc2.makeFg)
     test <@ e.isNothing @>
+    cts.Cancel()
 
 [<Fact>]
 let ``switching foreground with more than two apps`` () =
@@ -38,12 +41,14 @@ let ``switching foreground with more than two apps`` () =
     use proc2 = new Proc "notepad.exe"
     use proc3 = new Proc @"C:\Program Files\Windows NT\Accessories\wordpad.exe"
 
-    use fgWatcher = new ForegroundWindowWatcher()
+    let fgWatcher = new ForegroundWindowWatcher()
+    let cts = new CancellationTokenSource()
 
     async {
         fgWatcher.Watch()
-        let msgLoop = MessageLoop()
-        msgLoop.Run()
+        let msgLoop = WatchLoop()
+        let! _ = msgLoop.Run(cts.Token).AsTask() |> Async.AwaitTask
+        fgWatcher.Dispose()
     } |> Async.Start
 
     let e = monitor fgWatcher (fun () -> delayed proc1.makeFg)
@@ -55,3 +60,4 @@ let ``switching foreground with more than two apps`` () =
         delayed proc1.makeFg;
         delayed proc3.makeFg)
     test <@ not e.completed && e.noExns && e.values.Length = 4 @>
+    cts.Cancel()
