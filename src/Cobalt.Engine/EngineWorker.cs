@@ -4,8 +4,8 @@ using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cobalt.Common.Communication.Messages;
-using Cobalt.Common.Data.Entities;
 using Cobalt.Common.Data.Repository;
+using Cobalt.Engine.Infos;
 using Cobalt.Engine.Services;
 using Cobalt.Engine.Watchers;
 using Microsoft.Extensions.Hosting;
@@ -18,18 +18,16 @@ namespace Cobalt.Engine
     {
         private readonly EngineService _engineSvc;
         private readonly ForegroundWindowWatcher _fgWinWatcher;
-        private readonly WindowClosedWatcher _winClosedWatcher;
         private readonly ILogger<EngineWorker> _logger;
         private readonly MessageLoop _msgLoop;
-        private SystemEventWatcher _sysWatcher;
-        private IDbRepository _repo;
+        private readonly IDbRepository _repo;
+        private readonly SystemEventWatcher _sysWatcher;
 
         public EngineWorker(ILogger<EngineWorker> logger, EngineService engineSvc, IDbRepository repo)
         {
             _logger = logger;
             _engineSvc = engineSvc;
             _msgLoop = new MessageLoop();
-            _winClosedWatcher = new WindowClosedWatcher();
             _fgWinWatcher = new ForegroundWindowWatcher();
             _sysWatcher = new SystemEventWatcher();
 
@@ -41,17 +39,24 @@ namespace Cobalt.Engine
             _fgWinWatcher
                 .GroupByUntil(
                     fgSwitch => fgSwitch.Window,
-                    kv => _winClosedWatcher.Where(closedHandle => closedHandle == kv.Key.Handle))
-                .Subscribe(winSwitches =>
+                    win => win.Key.Closed)
+                .GroupByUntil(
+                    win => new ProcessInfo(win.Key.ProcessId),
+                    proc => proc.Key.Exited)
+                .Subscribe(proc =>
                 {
-                    _logger.LogWarning("NEW APP {Window}", winSwitches.Key.Title);
+                    _logger.LogWarning("NEW PROCESS {Id}", proc.Key.ProcessId);
 
-                    winSwitches.Subscribe(
-                        w =>
+                    proc.Subscribe(
+                        win =>
                         {
-                            _logger.LogInformation("{Time}: {Window} ({HWND})", w.ActivatedTimestamp, w.Window.Title,
-                                w.Window.Handle.DangerousGetHandle());
-                        }, () => { _logger.LogError("Window Closed!"); });
+                            _logger.LogWarning("NEW WINDOW {Window}", win.Key.Title);
+                            win.Subscribe(switches =>
+                            {
+                                _logger.LogInformation("{Time}: {Window}", switches.ActivatedTimestamp,
+                                    switches.Window.Title);
+                            }, () => { _logger.LogError("Window Closed!"); });
+                        }, () => { _logger.LogError("Process Closed!"); });
                 });
 
             _fgWinWatcher.Count().Subscribe(x =>
@@ -63,17 +68,18 @@ namespace Cobalt.Engine
                 _logger.LogInformation("{Timestamp}: {Kind}", x.Timestamp, x.Kind);
             });
 
-            _winClosedWatcher.Watch();
             _fgWinWatcher.Watch();
-            _sysWatcher.Watch();
+            //_sysWatcher.Watch();
+
+            var sync = SynchronizationContext.Current;
 
             stoppingToken.Register(() =>
             {
-                _winClosedWatcher.Dispose();
+                SynchronizationContext.SetSynchronizationContext(sync);
                 _fgWinWatcher.Dispose();
                 _sysWatcher.Dispose();
                 _msgLoop.Quit();
-            });
+            }, true);
             _msgLoop.Run();
         }
 

@@ -10,7 +10,7 @@ namespace Cobalt.Common.Utils
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void CheckValid(this bool b)
         {
-            if (!b) return;
+            if (b) return;
             throw new Win32Exception(Marshal.GetLastWin32Error());
         }
 
