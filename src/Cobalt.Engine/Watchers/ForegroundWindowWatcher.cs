@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Text;
 using Cobalt.Common.Utils;
 using Cobalt.Engine.Infos;
@@ -43,7 +42,8 @@ namespace Cobalt.Engine.Watchers
             if (length == 0) return;
             var title = new StringBuilder(length);
             User32.GetWindowText(hwnd, title, length + 1);
-            Events.OnNext(new ForegroundWindowSwitch(dwmsTimestamp, new BasicWindowInfo(pid, tid, hwnd, title.ToString())));
+            Events.OnNext(new ForegroundWindowSwitch(dwmsTimestamp,
+                new BasicWindowInfo(pid, tid, hwnd, title.ToString())));
         }
 
         private DateTime GetDwmsTimestamp(uint dwmseventtime)

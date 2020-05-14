@@ -1,6 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace Cobalt.Engine.Infos
 {
@@ -12,7 +10,7 @@ namespace Cobalt.Engine.Infos
             Window = window;
         }
 
-        public DateTime ActivatedTimestamp { get;  }
+        public DateTime ActivatedTimestamp { get; }
         public BasicWindowInfo Window { get; }
     }
 }

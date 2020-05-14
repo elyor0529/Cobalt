@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Threading;
 using Cobalt.Common.Data.Entities;
 using Cobalt.Common.Utils;
-using Microsoft.Win32;
 using Vanara.PInvoke;
 
 namespace Cobalt.Engine.Watchers
@@ -13,9 +12,9 @@ namespace Cobalt.Engine.Watchers
         private readonly TimeSpan _idleDuration = TimeSpan.FromSeconds(5); // TODO allow this to be configurable
         private Timer _idleTimer;
         private bool _isActive = true;
-        private DateTime _lastActive = DateTime.Now;
         private User32.HookProc _keyCallback;
         private User32.SafeHHOOK _keyHook;
+        private DateTime _lastActive = DateTime.Now;
         private User32.HookProc _mouseCallback;
         private User32.SafeHHOOK _mouseHook;
 

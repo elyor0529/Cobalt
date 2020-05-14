@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Reactive;
 using System.Reactive.Linq;
 using Cobalt.Common.Data.Entities;
@@ -8,12 +7,12 @@ using Vanara.PInvoke;
 
 namespace Cobalt.Engine.Infos
 {
-    public class ProcessInfo : IEquatable<ProcessInfo>
+    public class ProcessInfo : IEquatable<ProcessInfo>, IDisposable
     {
         public ProcessInfo(uint pid)
         {
-            ProcessId = pid;
-            ProcessHandle =
+            Id = pid;
+            Handle =
                 Kernel32.OpenProcess(
                         ACCESS_MASK.FromEnum(Kernel32.ProcessAccess.PROCESS_VM_READ) | ACCESS_MASK.SYNCHRONIZE,
                         false,
@@ -21,8 +20,8 @@ namespace Cobalt.Engine.Infos
                     .CheckValid();
         }
 
-        public uint ProcessId { get; }
-        public ISyncHandle ProcessHandle { get; set; }
+        public uint Id { get; }
+        public Kernel32.SafeHPROCESS Handle { get; set; }
 
         public AppIdentification Identification { get; } // generate
 
@@ -33,26 +32,28 @@ namespace Cobalt.Engine.Infos
                 Kernel32.WaitOrTimerCallback callback = (ctx, fired) =>
                 {
                     obs.OnNext(Unit.Default);
-                    obs.OnCompleted(); 
+                    obs.OnCompleted();
                     wait?.Dispose();
                 };
-                Kernel32.RegisterWaitForSingleObject(out wait, ProcessHandle, callback, IntPtr.Zero,
+                Kernel32.RegisterWaitForSingleObject(out wait, Handle, callback, IntPtr.Zero,
                     Kernel32.INFINITE,
                     Kernel32.WT.WT_EXECUTEONLYONCE).CheckValid();
                 wait.CompletionEvent = Kernel32.SafeEventHandle.InvalidHandle;
 
-                return () =>
-                {
-                    callback = null;
-                };
+                return () => { callback = null; };
             });
+
+        public void Dispose()
+        {
+            Handle.Dispose();
+        }
 
 
         public bool Equals(ProcessInfo other)
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
-            return ProcessId == other.ProcessId;
+            return Id == other.Id;
         }
 
         public override bool Equals(object obj)
@@ -65,7 +66,7 @@ namespace Cobalt.Engine.Infos
 
         public override int GetHashCode()
         {
-            return (int) ProcessId;
+            return (int) Id;
         }
     }
 }

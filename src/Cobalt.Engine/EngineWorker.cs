@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,7 +9,6 @@ using Cobalt.Engine.Services;
 using Cobalt.Engine.Watchers;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Vanara.PInvoke;
 
 namespace Cobalt.Engine
 {
@@ -19,9 +17,9 @@ namespace Cobalt.Engine
         private readonly EngineService _engineSvc;
         private readonly ForegroundWindowWatcher _fgWinWatcher;
         private readonly ILogger<EngineWorker> _logger;
-        private readonly WatchLoop _watchLoop;
         private readonly IDbRepository _repo;
         private readonly SystemEventWatcher _sysWatcher;
+        private readonly WatchLoop _watchLoop;
 
         public EngineWorker(ILogger<EngineWorker> logger, EngineService engineSvc, IDbRepository repo)
         {
@@ -45,7 +43,7 @@ namespace Cobalt.Engine
                     proc => proc.Key.Exited)
                 .Subscribe(proc =>
                 {
-                    _logger.LogWarning("NEW PROCESS {Id}", proc.Key.ProcessId);
+                    _logger.LogWarning("NEW PROCESS {Id}", proc.Key.Id);
 
                     proc.Subscribe(
                         win =>
