@@ -19,7 +19,6 @@ namespace Cobalt.Engine.Watchers
 
         public override void Dispose()
         {
-            Debug.WriteLine("E"+Kernel32.GetCurrentThreadId());
             User32.UnhookWinEvent(_hook).CheckValid();
             _hook = User32.HWINEVENTHOOK.NULL;
             _foregroundWindowChanged = null;
@@ -27,7 +26,6 @@ namespace Cobalt.Engine.Watchers
 
         public override void Watch()
         {
-            Debug.WriteLine("S"+Kernel32.GetCurrentThreadId());
             _hook = User32.SetWinEventHook(
                 User32.EventConstants.EVENT_SYSTEM_FOREGROUND,
                 User32.EventConstants.EVENT_SYSTEM_FOREGROUND,

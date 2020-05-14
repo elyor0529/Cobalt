@@ -1,5 +1,5 @@
-﻿#pragma warning disable CS1998 // Async method lacks 'await' operators and will run synchronously
-using System;
+﻿using System;
+using System.Diagnostics;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,7 +19,7 @@ namespace Cobalt.Engine
         private readonly EngineService _engineSvc;
         private readonly ForegroundWindowWatcher _fgWinWatcher;
         private readonly ILogger<EngineWorker> _logger;
-        private readonly MessageLoop _msgLoop;
+        private readonly WatchLoop _watchLoop;
         private readonly IDbRepository _repo;
         private readonly SystemEventWatcher _sysWatcher;
 
@@ -27,7 +27,7 @@ namespace Cobalt.Engine
         {
             _logger = logger;
             _engineSvc = engineSvc;
-            _msgLoop = new MessageLoop();
+            _watchLoop = new WatchLoop();
             _fgWinWatcher = new ForegroundWindowWatcher();
             _sysWatcher = new SystemEventWatcher();
 
@@ -69,18 +69,12 @@ namespace Cobalt.Engine
             });
 
             _fgWinWatcher.Watch();
-            //_sysWatcher.Watch();
+            _sysWatcher.Watch();
 
-            var sync = SynchronizationContext.Current;
+            await _watchLoop.Run(stoppingToken);
 
-            stoppingToken.Register(() =>
-            {
-                SynchronizationContext.SetSynchronizationContext(sync);
-                _fgWinWatcher.Dispose();
-                _sysWatcher.Dispose();
-                _msgLoop.Quit();
-            }, true);
-            _msgLoop.Run();
+            _fgWinWatcher.Dispose();
+            _sysWatcher.Dispose();
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -89,4 +83,3 @@ namespace Cobalt.Engine
         }
     }
 }
-#pragma warning restore CS1998 // Async method lacks 'await' operators and will run synchronously
