@@ -14,7 +14,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install Windows SDK
-      uses: ilammy/msvc-dev-cmd@v1
+      uses: ilammy/msvc-dev-cmd@v1.2.0
       with:
         sdk: 10.0.18362.2005
     - name: Setup .NET Core
