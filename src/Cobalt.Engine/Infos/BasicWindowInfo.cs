@@ -1,10 +1,6 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Reactive;
 using System.Reactive.Linq;
-using System.Runtime.InteropServices;
-using System.Text;
-using Cobalt.Common.Data.Entities;
 using Cobalt.Common.Utils;
 using Vanara.PInvoke;
 
@@ -31,7 +27,6 @@ namespace Cobalt.Engine.Infos
         public ProcessInfo Process { get; set; }
 
 
-
         public IObservable<Unit> Closed =>
             Observable.Create<Unit>(obs =>
             {
@@ -49,6 +44,10 @@ namespace Cobalt.Engine.Infos
                     User32.WINEVENT.WINEVENT_OUTOFCONTEXT).CheckValid();
                 return () => { windowClosed = null; };
             });
+
+        public void Dispose()
+        {
+        }
 
         public bool Equals(BasicWindowInfo other)
         {
@@ -69,11 +68,6 @@ namespace Cobalt.Engine.Infos
         public override int GetHashCode()
         {
             return HashCode.Combine(ProcessId, ThreadId, Handle, Title);
-        }
-
-        public void Dispose()
-        {
-
         }
     }
 }
