@@ -1,6 +1,10 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Reactive;
 using System.Reactive.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
+using Cobalt.Common.Data.Entities;
 using Cobalt.Common.Utils;
 using Vanara.PInvoke;
 
@@ -8,18 +12,25 @@ namespace Cobalt.Engine.Infos
 {
     public class BasicWindowInfo : IEquatable<BasicWindowInfo>
     {
-        public BasicWindowInfo(uint pid, uint tid, HWND hWnd, string title)
+        public BasicWindowInfo(uint pid, uint tid, HWND hWnd, string title, string path, bool isWinStoreApp)
         {
             ProcessId = pid;
             ThreadId = tid;
             Handle = hWnd;
             Title = title;
+            Path = path;
+            IsWinStoreApp = isWinStoreApp;
         }
 
         public uint ProcessId { get; }
         public uint ThreadId { get; }
         public HWND Handle { get; }
         public string Title { get; }
+        public string Path { get; }
+        public bool IsWinStoreApp { get; }
+        public ProcessInfo Process { get; set; }
+
+
 
         public IObservable<Unit> Closed =>
             Observable.Create<Unit>(obs =>

@@ -1,14 +1,20 @@
 ﻿using System;
+using System.IO.Packaging;
 using System.Reactive.Linq;
+using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Cobalt.Common.Communication.Messages;
 using Cobalt.Common.Data.Repository;
+using Cobalt.Common.Utils;
 using Cobalt.Engine.Infos;
 using Cobalt.Engine.Services;
 using Cobalt.Engine.Watchers;
+using Microsoft.AspNetCore.Routing.Constraints;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Vanara.PInvoke;
 
 namespace Cobalt.Engine
 {
@@ -34,27 +40,25 @@ namespace Cobalt.Engine
 
         private async Task Work(CancellationToken stoppingToken)
         {
+
+            // make window and processinfo idisposable, then call dispose when they get closed and exited
+
             _fgWinWatcher
+
                 .GroupByUntil(
-                    fgSwitch => fgSwitch.Window,
+                    sw => sw.Window,
                     win => win.Key.Closed)
                 .GroupByUntil(
-                    win => new ProcessInfo(win.Key.ProcessId),
+                    win => new ProcessInfo(win.Key),
                     proc => proc.Key.Exited)
+                .SelectMany(proc => proc.Do(win => win.Key.Process = proc.Key))
+                .SelectMany(win => win)
+
+                .Buffer(2, 1)
+                .Select(sws => new ForegroundWindowUsage(sws[0], sws[1]))
                 .Subscribe(proc =>
                 {
-                    _logger.LogWarning("NEW PROCESS {Id}", proc.Key.Id);
-
-                    proc.Subscribe(
-                        win =>
-                        {
-                            _logger.LogWarning("NEW WINDOW {Window}", win.Key.Title);
-                            win.Subscribe(switches =>
-                            {
-                                _logger.LogInformation("{Time}: {Window}", switches.ActivatedTimestamp,
-                                    switches.Window.Title);
-                            }, () => { _logger.LogError("Window Closed!"); });
-                        }, () => { _logger.LogError("Process Closed!"); });
+                    var h = proc.CurrentWindow.Process.Identification();
                 });
 
             _fgWinWatcher.Count().Subscribe(x =>
@@ -67,12 +71,13 @@ namespace Cobalt.Engine
             });
 
             _fgWinWatcher.Watch();
-            _sysWatcher.Watch();
+            //_sysWatcher.Watch();
 
             await _watchLoop.Run(stoppingToken);
 
             _fgWinWatcher.Dispose();
-            _sysWatcher.Dispose();
+            //_sysWatcher.Dispose();
+
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
