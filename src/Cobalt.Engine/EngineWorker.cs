@@ -58,7 +58,7 @@ namespace Cobalt.Engine
                 .Select(sws => new ForegroundWindowUsage(sws[0], sws[1]))
                 .Subscribe(proc =>
                 {
-                    var h = proc.CurrentWindow.Process.Identification();
+                    var h = proc.CurrentWindow.Process.Identification;
                 });
 
             _fgWinWatcher.Count().Subscribe(x =>

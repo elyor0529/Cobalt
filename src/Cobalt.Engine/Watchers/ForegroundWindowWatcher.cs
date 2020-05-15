@@ -66,7 +66,17 @@ namespace Cobalt.Engine.Watchers
                 isWinStoreApp = true;
             }
 
-            var title = GetTitle(hwnd);
+            var title = "";
+
+            try
+            {
+
+                title = GetTitle(hwnd);
+            }
+            catch (Exception e)
+            {
+
+            }
 
             proc.Dispose();
             Events.OnNext(new ForegroundWindowSwitch(dwmsTimestamp,

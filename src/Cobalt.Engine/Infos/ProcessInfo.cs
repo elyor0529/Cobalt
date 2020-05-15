@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Reactive;
 using System.Reactive.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using Cobalt.Common.Data.Entities;
 using Cobalt.Common.Utils;
@@ -22,14 +23,33 @@ namespace Cobalt.Engine.Infos
         public uint Id { get; }
         public bool IsWinStoreApp { get; }
 
-        public AppIdentification Identification()
+        private AppIdentification _identification;
+        public AppIdentification Identification => _identification ??= GetIdentification();
+
+        private AppIdentification GetIdentification()
         {
             if (IsWinStoreApp)
             {
                 uint len = 1024;
                 var buffer = new StringBuilder((int)len);
                 Kernel32.GetApplicationUserModelId(Handle, ref len, buffer).ThrowIfFailed();
+                Vanara.PInvoke.AdvApi32.OpenProcessToken(Handle, AdvApi32.TokenAccess.TOKEN_ALL_ACCESS, out var token);
+                uint len1 = 1024;
+                var buffer1 = new StringBuilder((int)len1);
+                Kernel32.GetPackageFullNameFromToken(token, ref len1, buffer1).ThrowIfFailed();
+                Kernel32.PACKAGE_INFO_REFERENCE info = new Kernel32.PACKAGE_INFO_REFERENCE();
+                Kernel32.OpenPackageInfoByFullName(buffer1.ToString(), 0, ref info).ThrowIfFailed();
 
+                uint infoLen = 128;
+                uint infoLen2 = (uint)Marshal.SizeOf<Kernel32.PACKAGE_INFO>() * infoLen;
+                var infos = new Kernel32.PACKAGE_INFO[infoLen];
+                var hdl = GCHandle.Alloc(infos, GCHandleType.Pinned);
+                Kernel32.GetPackageInfo2(info, 0, Kernel32.PackagePathType.PackagePathType_Effective, ref infoLen2, hdl.AddrOfPinnedObject(),
+                    out infoLen).ThrowIfFailed();
+
+
+
+                hdl.Free();
                 return AppIdentification.NewUWP(buffer.ToString());
             }
             else
