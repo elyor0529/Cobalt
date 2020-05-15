@@ -10,7 +10,7 @@ using Vanara.PInvoke;
 
 namespace Cobalt.Engine.Infos
 {
-    public class BasicWindowInfo : IEquatable<BasicWindowInfo>
+    public class BasicWindowInfo : IEquatable<BasicWindowInfo>, IDisposable
     {
         public BasicWindowInfo(uint pid, uint tid, HWND hWnd, string title, string path, bool isWinStoreApp)
         {
@@ -69,6 +69,11 @@ namespace Cobalt.Engine.Infos
         public override int GetHashCode()
         {
             return HashCode.Combine(ProcessId, ThreadId, Handle, Title);
+        }
+
+        public void Dispose()
+        {
+
         }
     }
 }

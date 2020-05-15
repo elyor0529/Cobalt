@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Reactive;
 using System.Reactive.Linq;
-using System.Runtime.InteropServices;
 using System.Text;
+using System.Threading.Tasks;
+using Windows.System;
 using Cobalt.Common.Data.Entities;
 using Cobalt.Common.Utils;
-using Microsoft.AspNetCore.Routing.Constraints;
 using Vanara.PInvoke;
 
 namespace Cobalt.Engine.Infos
@@ -18,56 +18,77 @@ namespace Cobalt.Engine.Infos
         {
             Id = win.ProcessId;
             IsWinStoreApp = win.IsWinStoreApp;
+            Path = win.Path;
         }
 
         public uint Id { get; }
         public bool IsWinStoreApp { get; }
+        public string Path { get; }
 
-        private AppIdentification _identification;
-        public AppIdentification Identification => _identification ??= GetIdentification();
-
-        private AppIdentification GetIdentification()
+        private AppIdentification _appIdentification = null;
+        public async ValueTask<AppIdentification> GetIdentification()
         {
+            if (_appIdentification != null) return _appIdentification;
             if (IsWinStoreApp)
             {
-                uint len = 1024;
-                var buffer = new StringBuilder((int)len);
-                Kernel32.GetApplicationUserModelId(Handle, ref len, buffer).ThrowIfFailed();
+                var aumid = GetWindowsStoreAppUserModelId(Handle);
+
+                /*
+                 * AppInfo.Find(aumid); // 19041 only
+                 */
+
+                /*
+                var infos = await AppDiagnosticInfo.RequestInfoForAppAsync(aumid);
+                var info = infos[0].AppInfo;
+                */
+
+                /*
                 Vanara.PInvoke.AdvApi32.OpenProcessToken(Handle, AdvApi32.TokenAccess.TOKEN_ALL_ACCESS, out var token);
                 uint len1 = 1024;
                 var buffer1 = new StringBuilder((int)len1);
                 Kernel32.GetPackageFullNameFromToken(token, ref len1, buffer1).ThrowIfFailed();
-                Kernel32.PACKAGE_INFO_REFERENCE info = new Kernel32.PACKAGE_INFO_REFERENCE();
-                Kernel32.OpenPackageInfoByFullName(buffer1.ToString(), 0, ref info).ThrowIfFailed();
-
-                uint infoLen = 128;
-                uint infoLen2 = (uint)Marshal.SizeOf<Kernel32.PACKAGE_INFO>() * infoLen;
-                var infos = new Kernel32.PACKAGE_INFO[infoLen];
-                var hdl = GCHandle.Alloc(infos, GCHandleType.Pinned);
-                Kernel32.GetPackageInfo2(info, 0, Kernel32.PackagePathType.PackagePathType_Effective, ref infoLen2, hdl.AddrOfPinnedObject(),
-                    out infoLen).ThrowIfFailed();
 
 
-
-                hdl.Free();
-                return AppIdentification.NewUWP(buffer.ToString());
+                var p = new PackageManager();
+                var package = p.FindPackage(buffer1.ToString());
+                var apps = Task.Run(() => package.GetAppListEntriesAsync().AsTask()).Result;
+                var appList = apps.ToList();
+                var d = package.Dependencies.ToList();
+                token.Dispose();*/
+                _appIdentification = AppIdentification.NewUWP(aumid);
             }
             else
             {
-                return AppIdentification.NewWin32(GetPath(Handle));
+                _appIdentification = AppIdentification.NewWin32(GetPath(Handle));
+            }
+
+            return _appIdentification;
+        }
+
+        public static string GetWindowsStoreAppUserModelId(Kernel32.SafeHPROCESS handle)
+        {
+            for (uint sz = 1024;; sz *= 2)
+            {
+                var buffer = new StringBuilder((int)sz);
+                var ret = Kernel32.GetApplicationUserModelId(handle, ref sz, buffer);
+                if (ret.Succeeded)
+                {
+                    return buffer.ToString();
+                }
+                ret.ThrowUnless(Win32Error.ERROR_INSUFFICIENT_BUFFER);
             }
         }
 
         public static string GetPath(Kernel32.SafeHPROCESS handle)
         {
-            for (uint pathSz = 1024;; pathSz *= 2)
+            for (uint sz = 1024;; sz *= 2)
             {
-                var buffer = new StringBuilder((int)pathSz);
+                var buffer = new StringBuilder((int)sz);
                 var ret = Kernel32.QueryFullProcessImageName(
                     handle,
                     Kernel32.PROCESS_NAME.PROCESS_NAME_WIN32,
                     buffer,
-                    ref pathSz);
+                    ref sz);
                 if (ret)
                 {
                     return buffer.ToString();

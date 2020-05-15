@@ -8,6 +8,7 @@ namespace Cobalt.Engine.Watchers
 {
     public class ForegroundWindowWatcher : Watcher<ForegroundWindowSwitch>
     {
+        private static readonly string ApplicationFrameHost = @"C:\Windows\System32\ApplicationFrameHost.exe";
         private User32.WinEventProc _foregroundWindowChanged;
         private User32.HWINEVENTHOOK _hook;
 
@@ -32,8 +33,6 @@ namespace Cobalt.Engine.Watchers
                 User32.WINEVENT.WINEVENT_OUTOFCONTEXT).CheckValid();
         }
 
-        private static readonly string ApplicationFrameHost = @"C:\Windows\System32\ApplicationFrameHost.exe";
-
         private void ForegroundWindowChanged(User32.HWINEVENTHOOK hwineventhook, uint winevent, HWND hwnd, int idobject,
             int idchild, uint ideventthread, uint dwmseventtime)
         {
@@ -52,31 +51,22 @@ namespace Cobalt.Engine.Watchers
             {
                 // UWP
                 var appWin = HWND.NULL;
-                User32.EnumChildWindows(hwnd, (hdl, id) =>
-                {
-                    User32.GetWindowThreadProcessId(hdl, out var cpid);
-                    if (cpid == pid) return true;
-                    
-                    appWin = hdl;
-                    return false;
-                }, IntPtr.Zero);
+                while (appWin == HWND.NULL)
+                    User32.EnumChildWindows(hwnd, (hdl, id) =>
+                    {
+                        User32.GetWindowThreadProcessId(hdl, out var cpid);
+                        if (cpid == pid) return true;
+
+                        appWin = hdl;
+                        return false;
+                    }, IntPtr.Zero);
                 hwnd = appWin;
                 tid = User32.GetWindowThreadProcessId(hwnd, out pid);
                 path = ProcessInfo.GetPath(proc);
                 isWinStoreApp = true;
             }
 
-            var title = "";
-
-            try
-            {
-
-                title = GetTitle(hwnd);
-            }
-            catch (Exception e)
-            {
-
-            }
+            var title = GetTitle(hwnd);
 
             proc.Dispose();
             Events.OnNext(new ForegroundWindowSwitch(dwmsTimestamp,

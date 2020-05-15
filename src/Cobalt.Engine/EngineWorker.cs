@@ -1,20 +1,14 @@
 ﻿using System;
-using System.IO.Packaging;
 using System.Reactive.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Cobalt.Common.Communication.Messages;
 using Cobalt.Common.Data.Repository;
-using Cobalt.Common.Utils;
 using Cobalt.Engine.Infos;
 using Cobalt.Engine.Services;
 using Cobalt.Engine.Watchers;
-using Microsoft.AspNetCore.Routing.Constraints;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Vanara.PInvoke;
 
 namespace Cobalt.Engine
 {
@@ -40,25 +34,39 @@ namespace Cobalt.Engine
 
         private async Task Work(CancellationToken stoppingToken)
         {
-
             // make window and processinfo idisposable, then call dispose when they get closed and exited
 
             _fgWinWatcher
-
                 .GroupByUntil(
                     sw => sw.Window,
                     win => win.Key.Closed)
                 .GroupByUntil(
                     win => new ProcessInfo(win.Key),
                     proc => proc.Key.Exited)
-                .SelectMany(proc => proc.Do(win => win.Key.Process = proc.Key))
-                .SelectMany(win => win)
-
+                .SelectMany(proc =>
+                {
+                    return proc
+                            .Finally(async () =>
+                            {
+                                proc.Key.Dispose();
+                                _logger.LogError("APP {} closed", await proc.Key.GetIdentification());
+                            })
+                            .SelectMany(win => win
+                                .Do(w => w.Window.Process = proc.Key).Finally(() =>
+                                {
+                                    win.Key.Dispose();
+                                    _logger.LogError("window {} closed", win.Key.Title);
+                                }))
+                        ;
+                })
                 .Buffer(2, 1)
                 .Select(sws => new ForegroundWindowUsage(sws[0], sws[1]))
-                .Subscribe(proc =>
+                .Subscribe(async proc =>
                 {
-                    var h = proc.CurrentWindow.Process.Identification;
+                    _logger.LogInformation("{s} - {e} Switch `{win1}` ({app1}) to `{win2}` ({app2})",
+                        proc.Start, proc.End,
+                        proc.CurrentWindow.Title, await proc.CurrentWindow.Process.GetIdentification(),
+                        proc.NewWindow.Title, await proc.NewWindow.Process.GetIdentification());
                 });
 
             _fgWinWatcher.Count().Subscribe(x =>
@@ -77,7 +85,6 @@ namespace Cobalt.Engine
 
             _fgWinWatcher.Dispose();
             //_sysWatcher.Dispose();
-
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
