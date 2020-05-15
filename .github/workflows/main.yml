@@ -13,10 +13,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-    - name: Install Windows SDK
-      uses: ilammy/msvc-dev-cmd@v1.2.0
-      with:
-        sdk: 10.0.18362.2005
+    - name: Install Windows SDK 10.0.18362.0
+      run: choco install windows-sdk-10-version-1903-all
     - name: Setup .NET Core
       uses: actions/setup-dotnet@v1
       with:
