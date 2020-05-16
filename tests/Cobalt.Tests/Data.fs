@@ -16,7 +16,8 @@ open System.IO
 open System
 
 let getTestConn () = 
-    let ret = new SqliteConnection("Data Source=:memory:")
+    let rng = new Random()
+    let ret = new SqliteConnection(sprintf "Data Source=:memory:")
     ret.Open()
     ret
 
@@ -49,7 +50,7 @@ let readBlob conn tbl col id =
 type Repository () = 
     let conn = getTestConn()
     let mig = Migrator(conn) :> IMigrator
-    let repo = DbRepository(conn, mig) :> IDbRepository
+    let repo = new DbRepository(conn, mig) :> IDbRepository
 
 
     [<Fact>]
@@ -234,4 +235,7 @@ type Repository () =
 
     interface IDisposable with
         member _.Dispose () = 
-            conn.Dispose()
+            let src = conn.DataSource
+            repo.Dispose()
+            if not <| String.IsNullOrEmpty(src) then
+                File.Delete(src)

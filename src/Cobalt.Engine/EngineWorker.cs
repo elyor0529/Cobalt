@@ -60,7 +60,7 @@ namespace Cobalt.Engine
 
         private async Task Work(CancellationToken stoppingToken)
         {
-            _fgWinWatcher
+            var usages = _fgWinWatcher
                 // group by window, until the window closes
                 .GroupByUntil(
                     sw => new WindowInfo(sw.Window),
@@ -111,21 +111,17 @@ namespace Cobalt.Engine
                         proc.NewWindow.Title, proc.NewWindow.Session.App.Identification);
                 });
 
-            _fgWinWatcher.Count().Subscribe(x =>
-                _engineSvc.PushUsageSwitch(new UsageSwitch {UsageId = x}));
-
-            _sysWatcher.Subscribe(x =>
-            {
-                x = _repo.Insert(x);
-                _logger.LogInformation("{Timestamp}: {Kind}", x.Timestamp, x.Kind);
-            });
+            var sys = _sysWatcher.Subscribe(x => _repo.Insert(x));
 
             _fgWinWatcher.Watch();
-            //_sysWatcher.Watch();
+            _sysWatcher.Watch();
 
             await _watchLoop.Run(stoppingToken);
 
+            usages.Dispose();
+            sys.Dispose();
             _fgWinWatcher.Dispose();
+            _sysWatcher.Dispose();
             _repo.Dispose();
         }
 
