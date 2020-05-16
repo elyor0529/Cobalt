@@ -1,6 +1,7 @@
 ﻿using System.IO.Compression;
 using Cobalt.Common.Data.Migrations;
 using Cobalt.Common.Data.Repository;
+using Cobalt.Common.Infrastructure;
 using Cobalt.Engine.Services;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -14,19 +15,11 @@ namespace Cobalt.Engine
     {
         public void ConfigureServices(IServiceCollection services)
         {
-            // TODO shift IoC stuff to a Common dll
-            var connBuilder = new SqliteConnectionStringBuilder {DataSource = "data.db", ForeignKeys = true};
-            var conn = new SqliteConnection(connBuilder.ToString());
-            conn.Open();
-
-            services.AddSingleton(conn);
-            services.AddSingleton<IMigrator, Migrator>();
-            services.AddSingleton<IDbRepository, DbRepository>();
+            services.AddCobaltCommon();
 
             services.AddSingleton<EngineService>();
 
             services.AddCodeFirstGrpc(config => { config.ResponseCompressionLevel = CompressionLevel.Optimal; });
-
             services.AddHostedService<EngineWorker>();
         }
 
