@@ -22,7 +22,6 @@ namespace Cobalt.Engine
         private readonly ForegroundWindowWatcher _fgWinWatcher;
         private readonly ILogger<EngineWorker> _logger;
         private readonly IDbRepository _repo;
-        private readonly SystemEventWatcher _sysWatcher;
         private readonly WatchLoop _watchLoop;
 
         public EngineWorker(ILogger<EngineWorker> logger, EngineService engineSvc, IDbRepository repo)
@@ -31,7 +30,6 @@ namespace Cobalt.Engine
             _engineSvc = engineSvc;
             _watchLoop = new WatchLoop();
             _fgWinWatcher = new ForegroundWindowWatcher();
-            _sysWatcher = new SystemEventWatcher();
 
             _repo = repo;
         }
@@ -61,7 +59,7 @@ namespace Cobalt.Engine
 
         private async Task Work(CancellationToken stoppingToken)
         {
-            var usages = _fgWinWatcher
+            using var usages = _fgWinWatcher
                 // group by window, until the window closes
                 .GroupByUntil(
                     sw => new WindowInfo(sw.Window),
@@ -113,17 +111,11 @@ namespace Cobalt.Engine
                         fgUsage.NewWindow.Session.App);
                 });
 
-            var sys = _sysWatcher.ObserveOn(ThreadPoolScheduler.Instance).Subscribe(x => _repo.Insert(x));
-
             _fgWinWatcher.Watch();
-            _sysWatcher.Watch();
 
             await _watchLoop.Run(stoppingToken);
 
-            usages.Dispose();
-            sys.Dispose();
             _fgWinWatcher.Dispose();
-            _sysWatcher.Dispose();
             _repo.Dispose();
         }
 
