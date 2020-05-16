@@ -62,7 +62,7 @@ namespace Cobalt.Tests.Benchmarks
             var app = app1;
             var text1 = app.Identification switch
             {
-                AppIdentification.UWP x => x.PRAID,
+                AppIdentification.UWP x => x.AUMID,
                 AppIdentification.Win32 x => x.Path,
                 AppIdentification.Java x => x.MainJar,
                 _ => throw new NotImplementedException()
@@ -88,7 +88,7 @@ namespace Cobalt.Tests.Benchmarks
             var app = app1;
             var text1 = app.Identification switch
             {
-                AppIdentification.UWP x => x.PRAID,
+                AppIdentification.UWP x => x.AUMID,
                 AppIdentification.Win32 x => x.Path,
                 AppIdentification.Java x => x.MainJar,
                 _ => throw new NotImplementedException()

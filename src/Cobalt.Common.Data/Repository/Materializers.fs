@@ -79,9 +79,9 @@ type AppMaterializer(conn, sch) =
         | Win32 path -> 
             addParam "Identification_Tag" 0  >>
             addParam "Identification_Text1" path
-        | UWP praid -> 
+        | UWP aumid -> 
             addParam "Identification_Tag" 1 >>
-            addParam "Identification_Text1" praid
+            addParam "Identification_Text1" aumid
         | Java mainJar -> 
             addParam "Identification_Tag" 2 >>
             addParam "Identification_Text1" mainJar

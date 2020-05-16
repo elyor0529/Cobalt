@@ -5,7 +5,7 @@ open System.IO
 
 type AppIdentification =
     | Win32 of Path: string
-    | UWP of PRAID: string
+    | UWP of AUMID: string
     | Java of MainJar: string
 
 [<CLIMutable>]
