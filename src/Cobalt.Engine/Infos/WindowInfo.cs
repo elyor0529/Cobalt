@@ -10,6 +10,7 @@ namespace Cobalt.Engine.Infos
     public class WindowInfo : IEquatable<WindowInfo>, IDisposable
     {
         private static readonly string ApplicationFrameHost = @"C:\Windows\System32\ApplicationFrameHost.exe";
+
         public WindowInfo(BasicWindowInfo win)
         {
             Handle = win.Handle;
@@ -40,6 +41,7 @@ namespace Cobalt.Engine.Infos
                 Path = ProcessInfo.GetPath(proc);
                 IsWinStoreApp = true;
             }
+
             ProcessId = pid;
         }
 

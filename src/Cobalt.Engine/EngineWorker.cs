@@ -105,10 +105,6 @@ namespace Cobalt.Engine
                         AppId = usage.Session.App.Id, SessionId = usage.Session.Id, UsageId = usage.Id,
                         NewSessionId = proc.NewWindow.Session.Id, NewAppId = proc.NewWindow.Session.App.Id
                     });
-                    _logger.LogInformation("{s} - {e} Switch `{win1}` ({app1}) to `{win2}` ({app2})",
-                        proc.Start, proc.End,
-                        proc.CurrentWindow.Title, proc.CurrentWindow.Session.App.Identification,
-                        proc.NewWindow.Title, proc.NewWindow.Session.App.Identification);
                 });
 
             var sys = _sysWatcher.Subscribe(x => _repo.Insert(x));

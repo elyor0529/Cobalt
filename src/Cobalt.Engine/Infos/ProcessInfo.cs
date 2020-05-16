@@ -11,7 +11,6 @@ namespace Cobalt.Engine.Infos
 {
     public class ProcessInfo : IEquatable<ProcessInfo>, IDisposable
     {
-        private AppIdentification _appIdentification;
         private Kernel32.SafeHPROCESS _handle;
 
         public ProcessInfo(WindowInfo win)
@@ -24,7 +23,6 @@ namespace Cobalt.Engine.Infos
         public uint Id { get; }
         public bool IsWinStoreApp { get; }
         public string Path { get; }
-
         public App App { get; set; }
 
         public Kernel32.SafeHPROCESS Handle
@@ -44,6 +42,12 @@ namespace Cobalt.Engine.Infos
                 return _handle;
             }
         }
+        public void Dispose()
+        {
+            Handle.Dispose();
+        }
+
+
 
         public IObservable<Unit> Exited
             => Observable.Create<Unit>(obs =>
@@ -63,56 +67,38 @@ namespace Cobalt.Engine.Infos
                 return () => { callback = null; };
             });
 
-        public void Dispose()
-        {
-            Handle.Dispose();
-        }
-
-
-        public bool Equals(ProcessInfo other)
-        {
-            if (ReferenceEquals(null, other)) return false;
-            if (ReferenceEquals(this, other)) return true;
-            return Id == other.Id;
-        }
-
         public ValueTask<AppIdentification> GetIdentification()
         {
-            if (_appIdentification == null)
-                if (IsWinStoreApp)
-                {
-                    var aumid = GetWindowsStoreAppUserModelId(Handle);
+            if (IsWinStoreApp)
+            {
+                var aumid = GetWindowsStoreAppUserModelId(Handle);
 
-                    /*
-                     * AppInfo.Find(aumid); // 19041 only
-                     */
+                /*
+                 * AppInfo.Find(aumid); // 19041 only
+                 */
 
-                    /*
-                    var infos = await AppDiagnosticInfo.RequestInfoForAppAsync(aumid);
-                    var info = infos[0].AppInfo;
-                    */
+                /*
+                var infos = await AppDiagnosticInfo.RequestInfoForAppAsync(aumid);
+                var info = infos[0].AppInfo;
+                */
 
-                    /*
-                    Vanara.PInvoke.AdvApi32.OpenProcessToken(Handle, AdvApi32.TokenAccess.TOKEN_ALL_ACCESS, out var token);
-                    uint len1 = 1024;
-                    var buffer1 = new StringBuilder((int)len1);
-                    Kernel32.GetPackageFullNameFromToken(token, ref len1, buffer1).ThrowIfFailed();
-    
-    
-                    var p = new PackageManager();
-                    var package = p.FindPackage(buffer1.ToString());
-                    var apps = Task.Run(() => package.GetAppListEntriesAsync().AsTask()).Result;
-                    var appList = apps.ToList();
-                    var d = package.Dependencies.ToList();
-                    token.Dispose();*/
-                    _appIdentification = AppIdentification.NewUWP(aumid);
-                }
-                else
-                {
-                    _appIdentification = AppIdentification.NewWin32(GetPath(Handle));
-                }
+                /*
+                Vanara.PInvoke.AdvApi32.OpenProcessToken(Handle, AdvApi32.TokenAccess.TOKEN_ALL_ACCESS, out var token);
+                uint len1 = 1024;
+                var buffer1 = new StringBuilder((int)len1);
+                Kernel32.GetPackageFullNameFromToken(token, ref len1, buffer1).ThrowIfFailed();
 
-            return new ValueTask<AppIdentification>(_appIdentification);
+
+                var p = new PackageManager();
+                var package = p.FindPackage(buffer1.ToString());
+                var apps = Task.Run(() => package.GetAppListEntriesAsync().AsTask()).Result;
+                var appList = apps.ToList();
+                var d = package.Dependencies.ToList();
+                token.Dispose();*/
+                return new ValueTask<AppIdentification>(AppIdentification.NewUWP(aumid));
+            }
+
+            return new ValueTask<AppIdentification>(AppIdentification.NewWin32(Path));
         }
 
         public static string GetWindowsStoreAppUserModelId(Kernel32.SafeHPROCESS handle)
@@ -139,6 +125,13 @@ namespace Cobalt.Engine.Infos
                 if (ret) return buffer.ToString();
                 Win32Error.ThrowLastErrorUnless(Win32Error.ERROR_INSUFFICIENT_BUFFER);
             }
+        }
+
+        public bool Equals(ProcessInfo other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return Id == other.Id;
         }
 
         public override bool Equals(object obj)
