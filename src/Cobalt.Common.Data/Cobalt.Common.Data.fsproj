@@ -26,4 +26,8 @@
     <ProjectReference Include="..\Cobalt.Common.Utils\Cobalt.Common.Utils.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="4.7.1" />
+  </ItemGroup>
+
 </Project>

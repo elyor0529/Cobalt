@@ -4,6 +4,7 @@ open Cobalt.Common.Data.Entities
 open Cobalt.Common.Data.Migrations
 open Microsoft.Data.Sqlite
 open Dapper
+open Microsoft.Extensions.Logging
 
 type IDbRepository = 
     inherit System.IDisposable
@@ -16,7 +17,7 @@ type IDbRepository =
     abstract member InsertTagToApp : App -> Tag -> unit 
     abstract member DeleteTagToApp : App -> Tag -> unit 
 
-type DbRepository (conn: SqliteConnection, mig: IMigrator) =
+type DbRepository (conn: SqliteConnection, mig: IMigrator, logger: ILogger<DbRepository>) =
     let schema = mig.Migrate()
 
     let mapp = AppMaterializer(conn, schema)
@@ -49,7 +50,9 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
         lazy reader "select * from app where Id in (select AppId from App_Tag where TagId = @TagId)"
             {| TagId = tagId |} (mapp.Materialize 0)
 
-    member _.IdReader<'a> id = singleReader (sprintf "select * from %s where Id = %d" (typeof<'a>.Name) id)
+    member _.IdReader<'a> (mat: Materializer<'a>) id =
+        use reader = singleReader (sprintf "select * from %s where Id = %d" (typeof<'a>.Name) id)
+        mat.Materialize 0 reader
 
     member inline private _.Insert< ^a when ^a: ( member Id: int64)> (o:'a) (m: Materializer<'a>) =
         let c = m.InsertCommand
@@ -85,40 +88,39 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
                     let id = x.Insert o malt
                     box { o with Id = id; }
                 | _ -> failwithf "type %A not allowed for Insert" (obj.GetType())
+            logger.LogTrace("Inserted {obj}", ret);
             ret :?> 'a
 
         member x.Delete obj =
             match box obj with
                 | :? Alert as x -> ()
                 | _ -> failwithf "type %A not allowed for Delete" (obj.GetType())
+            logger.LogTrace("Deleted {obj}", obj);
 
         member x.Get<'a> id = 
-            match typeof<'a> with
+            let ret =
+                match typeof<'a> with
                 | t when t = typeof<App> ->
-                    let reader = x.IdReader<App> id
-                    let app = mapp.Materialize 0 reader
+                    let app = x.IdReader mapp id
                     box { app with Tags = tagsFor app.Id } :?> 'a
                 | t when t = typeof<Tag> ->
-                    let reader = x.IdReader<Tag> id
-                    let tag = mtag.Materialize 0 reader
+                    let tag = x.IdReader mtag id
                     box { tag with Apps = appsFor tag.Id } :?> 'a
                 | t when t = typeof<Session> ->
-                    let reader = x.IdReader<Session> id
-                    let session = msess.Materialize 0 reader
+                    let session = x.IdReader msess id
                     box session :?> 'a
                 | t when t = typeof<Usage> ->
-                    let reader = x.IdReader<Usage> id
-                    let usage = musage.Materialize 0 reader
+                    let usage = x.IdReader musage id
                     box usage :?> 'a
                 | t when t = typeof<SystemEvent> ->
-                    let reader = x.IdReader<SystemEvent> id
-                    let se = mse.Materialize 0 reader
+                    let se = x.IdReader mse id
                     box se :?> 'a
                 | t when t = typeof<Alert> ->
-                    let reader = x.IdReader<Alert> id
-                    let alt = malt.Materialize 0 reader
+                    let alt = x.IdReader malt id
                     box alt :?> 'a
                 | _ -> failwithf "type %A not allowed for Get" typeof<'a>
+            logger.LogTrace("Got <{id}> {obj}", id, ret);
+            ret
 
         member _.FindAppByIdentification appId =
             let cmd = cmd "select * from App where Identification_Tag=@Identification_Tag and Identification_Text1=@Identification_Text1"

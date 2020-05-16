@@ -14,6 +14,7 @@ open Dapper
 open Cobalt.Common.Data.Repository
 open System.IO
 open System
+open Microsoft.Extensions.Logging.Abstractions
 
 let getTestConn () = 
     let rng = new Random()
@@ -49,8 +50,8 @@ let readBlob conn tbl col id =
 
 type Repository () = 
     let conn = getTestConn()
-    let mig = Migrator(conn) :> IMigrator
-    let repo = new DbRepository(conn, mig) :> IDbRepository
+    let mig = Migrator(conn, NullLogger<Migrator>()) :> IMigrator
+    let repo = new DbRepository(conn, mig, NullLogger<DbRepository>()) :> IDbRepository
 
 
     [<Fact>]

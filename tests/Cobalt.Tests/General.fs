@@ -15,6 +15,7 @@ open Microsoft.Data.Sqlite
 open System.Data
 open Dapper
 open System.IO
+open Microsoft.Extensions.Logging.Abstractions
 
 [<Fact>]
 let ``adding numbers in FsUnit`` () = 
@@ -222,7 +223,7 @@ let ``fun stuff`` () =
     conn.Open()
     test <@ conn.State.HasFlag ConnectionState.Open @>
 
-    let mig = Migrator(conn) :> IMigrator
+    let mig = Migrator(conn, NullLogger<Migrator>()) :> IMigrator
     let sch = mig.Migrate()
 
     let app = { Id = 4L; Name = "Chrome"; Identification = UWP "Main"; Background = "black"; Icon = new MemoryStream([|1uy;2uy;3uy;4uy|]); Tags = null }

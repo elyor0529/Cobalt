@@ -3,11 +3,12 @@
 open Microsoft.Data.Sqlite
 open Dapper
 open Meta
+open Microsoft.Extensions.Logging
 
 type IMigrator =
     abstract member Migrate: unit -> Schema;
 
-type Migrator (conn: SqliteConnection) = 
+type Migrator (conn: SqliteConnection, logger: ILogger<Migrator>) = 
     let currentVer = 
         try 
             conn.ExecuteScalar<int64>("select max(version) from migration")
@@ -20,11 +21,13 @@ type Migrator (conn: SqliteConnection) =
     let migrate sch (mig: MigrationBase) =
         mig.MigrateSchema sch;
         if mig.Version > currentVer then
+            logger.LogInformation("Running migration {migration}", mig)
             mig.Migrate sch.Schema;
         sch
 
     interface IMigrator with
         member _.Migrate() =
+            logger.LogDebug("Current Migration Version is {version}", currentVer)
             let ctx =
                 migrations
                     |> List.sortBy (fun x -> x.Version)

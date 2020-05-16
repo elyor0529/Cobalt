@@ -11,6 +11,7 @@ namespace Cobalt.Engine.Infos
     {
         private static readonly string ApplicationFrameHost = @"C:\Windows\System32\ApplicationFrameHost.exe";
 
+        // TODO move all logic to another class and take in ILogger there so that we can log that this is a UWP/Java app
         public WindowInfo(BasicWindowInfo win)
         {
             Handle = win.Handle;

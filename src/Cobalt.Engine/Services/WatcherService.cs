@@ -67,17 +67,33 @@ namespace Cobalt.Engine.Services
                     win => new ProcessInfo(win.Key),
                     proc => proc.Key.Exited)
                 // set the app for the process
-                .Do(async proc => await WithApp(proc.Key))
+                .Do(async proc =>
+                {
+                    await WithApp(proc.Key);
+                    _logger.LogDebug("Process {App} Opened", proc.Key.App);
+                })
                 // flatten the groups back
                 .SelectMany(proc =>
                     proc
                         // set the session for the window
-                        .Do(async win => await WithSession(win.Key, proc.Key))
+                        .Do(async win =>
+                        {
+                            await WithSession(win.Key, proc.Key);
+                            _logger.LogDebug("Window {Session} Opened", win.Key.Session);
+                        })
                         // dispose of the process once the process exits
-                        .Finally(() => proc.Key.Dispose())
+                        .Finally(() =>
+                        {
+                            proc.Key.Dispose();
+                            _logger.LogDebug("Process {App} Exited", proc.Key.App);
+                        })
                         .SelectMany(win =>
                             // dispose of the window once it closes
-                            win.Finally(() => win.Key.Dispose())
+                            win.Finally(() =>
+                                {
+                                    win.Key.Dispose();
+                                    _logger.LogDebug("Window {Session} Closed", win.Key.Session);
+                                })
                                 .Select(sw => new {sw.ActivatedTimestamp, Window = win.Key})))
                 // select every 2 switches
                 .Buffer(2, 1)
