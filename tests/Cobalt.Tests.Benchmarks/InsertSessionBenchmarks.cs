@@ -8,6 +8,7 @@ using Cobalt.Common.Data.Migrations;
 using Cobalt.Common.Data.Repository;
 using Dapper;
 using Microsoft.Data.Sqlite;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace Cobalt.Tests.Benchmarks
 {
@@ -44,8 +45,8 @@ namespace Cobalt.Tests.Benchmarks
             builder.ForeignKeys = true;
             Connection = new SqliteConnection(builder.ToString());
             Connection.Open();
-            var migrations = new Migrator(Connection);
-            Repository = new DbRepository(Connection, migrations);
+            var migrations = new Migrator(Connection, new NullLogger<Migrator>());
+            Repository = new DbRepository(Connection, migrations, new NullLogger<DbRepository>());
             cmd = new SqliteCommand(
                 "insert into App(Name, Identification_Tag, Identification_Text1, Background, Icon) values (@Name, @Identification_Tag, @Identification_Text1, @Background, @Icon); select last_insert_rowid()",
                 Connection);
