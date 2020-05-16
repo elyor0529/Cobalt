@@ -6,9 +6,12 @@ open Microsoft.Data.Sqlite
 open Dapper
 
 type IDbRepository = 
+    inherit System.IDisposable
     abstract member Insert<'a> : 'a -> 'a
     abstract member Delete<'a> : 'a -> unit
     abstract member Get<'a> : int64 -> 'a
+
+    abstract member FindAppByIdentification: AppIdentification -> App voption
 
     abstract member InsertTagToApp : App -> Tag -> unit 
     abstract member DeleteTagToApp : App -> Tag -> unit 
@@ -46,7 +49,7 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
         lazy reader "select * from app where Id in (select AppId from App_Tag where TagId = @TagId)"
             {| TagId = tagId |} (mapp.Materialize 0)
 
-    member x.IdReader<'a> id = singleReader (sprintf "select * from %s where Id = %d" (typeof<'a>.Name) id)
+    member _.IdReader<'a> id = singleReader (sprintf "select * from %s where Id = %d" (typeof<'a>.Name) id)
 
     member inline private _.Insert< ^a when ^a: ( member Id: int64)> (o:'a) (m: Materializer<'a>) =
         let c = m.InsertCommand
@@ -54,6 +57,8 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
         c.ExecuteScalar() :?> int64
 
     interface IDbRepository with
+        member _.Dispose() = 
+            conn.Dispose()
         member x.Insert obj = 
             let ret =
                 match box obj with
@@ -114,6 +119,15 @@ type DbRepository (conn: SqliteConnection, mig: IMigrator) =
                     let alt = malt.Materialize 0 reader
                     box alt :?> 'a
                 | _ -> failwithf "type %A not allowed for Get" typeof<'a>
+
+        member _.FindAppByIdentification appId =
+            let cmd = cmd "select * from App where Identification_Tag=@Identification_Tag and Identification_Text1=@Identification_Text1"
+            mapp.DematerializeIdentification appId cmd.Parameters |> ignore
+            let reader = cmd.ExecuteReader()
+            let res = reader.Read()
+            if res then
+                ValueSome (mapp.Materialize 0 reader)
+            else ValueNone
 
         member _.InsertTagToApp app tag =
             exec "insert into App_Tag values (@AppId, @TagId)"

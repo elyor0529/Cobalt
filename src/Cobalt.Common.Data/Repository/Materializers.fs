@@ -74,24 +74,26 @@ type AppMaterializer(conn, sch) =
         let icon = (reader :?> SqliteDataReader).GetStream(offset + 5)
         { Id = id; Name = name; Identification = ident; Background = bg; Icon = icon; Tags = null; }
 
-    override _.Dematerialize obj prms = 
+    member _.DematerializeIdentification id = 
+        match id with
+        | Win32 path -> 
+            addParam "Identification_Tag" 0  >>
+            addParam "Identification_Text1" path
+        | UWP praid -> 
+            addParam "Identification_Tag" 1 >>
+            addParam "Identification_Text1" praid
+        | Java mainJar -> 
+            addParam "Identification_Tag" 2 >>
+            addParam "Identification_Text1" mainJar
+
+    override x.Dematerialize obj prms = 
         use mem = new MemoryStream()
         obj.Icon.CopyTo(mem)
         let icon = mem.ToArray()
         prms
         |> autoGenId obj
         |> addParam "Name" obj.Name
-        |>
-            match obj.Identification with
-            | Win32 path -> 
-                addParam "Identification_Tag" 0  >>
-                addParam "Identification_Text1" path
-            | UWP praid -> 
-                addParam "Identification_Tag" 1 >>
-                addParam "Identification_Text1" praid
-            | Java mainJar -> 
-                addParam "Identification_Tag" 2 >>
-                addParam "Identification_Text1" mainJar
+        |> x.DematerializeIdentification obj.Identification
         |> addParam "Background" obj.Background
         |> addParam "Icon" icon
         |> ignore

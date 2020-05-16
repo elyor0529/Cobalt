@@ -14,7 +14,7 @@ namespace Cobalt.Engine.Infos
         private AppIdentification _appIdentification;
         private Kernel32.SafeHPROCESS _handle;
 
-        public ProcessInfo(BasicWindowInfo win)
+        public ProcessInfo(WindowInfo win)
         {
             Id = win.ProcessId;
             IsWinStoreApp = win.IsWinStoreApp;

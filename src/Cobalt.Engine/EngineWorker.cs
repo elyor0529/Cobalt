@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,6 +11,7 @@ using Cobalt.Engine.Services;
 using Cobalt.Engine.Watchers;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.FSharp.Core;
 
 namespace Cobalt.Engine
 {
@@ -33,17 +35,27 @@ namespace Cobalt.Engine
             _repo = repo;
         }
 
-        private async ValueTask WithSession(BasicWindowInfo win, ProcessInfo proc)
+        private ValueTask WithSession(WindowInfo win, ProcessInfo proc)
         {
-            // TODO just insert a new session
-            win.Session = new Session {App = proc.App};
+            win.Session = _repo.Insert(new Session
+            {
+                App = proc.App,
+                Title = win.Title,
+                CmdLine = "not implemented" // TODO
+            });
+            return new ValueTask();
         }
 
         private async ValueTask WithApp(ProcessInfo proc)
         {
             var id = await proc.GetIdentification();
-            // TODO find by id, if exists return that else insert new app
-            proc.App = new App();
+            proc.App = ValueOption.ToObj(_repo.FindAppByIdentification(id)) ?? _repo.Insert(new App
+            {
+                Identification = id,
+                Background = "#FEFEFE", // TODO
+                Icon = new MemoryStream(), // TODO
+                Name = "" // TODO
+            });
         }
 
         private async Task Work(CancellationToken stoppingToken)
@@ -51,7 +63,7 @@ namespace Cobalt.Engine
             _fgWinWatcher
                 // group by window, until the window closes
                 .GroupByUntil(
-                    sw => sw.Window,
+                    sw => new WindowInfo(sw.Window),
                     win => win.Key.Closed)
                 // group by process, until the process exits
                 .GroupByUntil(
@@ -68,13 +80,31 @@ namespace Cobalt.Engine
                         .Finally(() => proc.Key.Dispose())
                         .SelectMany(win =>
                             // dispose of the window once it closes
-                            win.Finally(() => win.Key.Dispose())))
+                            win.Finally(() => win.Key.Dispose())
+                                .Select(sw => new {sw.ActivatedTimestamp, Window = win.Key})))
                 // select every 2 switches
                 .Buffer(2, 1)
                 // and convert them to a usage
-                .Select(sws => new ForegroundWindowUsage(sws[0], sws[1]))
+                .Select(sws => new
+                {
+                    Start = sws[0].ActivatedTimestamp,
+                    End = sws[1].ActivatedTimestamp,
+                    CurrentWindow = sws[0].Window,
+                    NewWindow = sws[1].Window
+                })
                 .Subscribe(proc =>
                 {
+                    var usage = _repo.Insert(new Usage
+                    {
+                        Start = proc.Start,
+                        End = proc.End,
+                        Session = proc.CurrentWindow.Session
+                    });
+                    _engineSvc.PushUsageSwitch(new UsageSwitch
+                    {
+                        AppId = usage.Session.App.Id, SessionId = usage.Session.Id, UsageId = usage.Id,
+                        NewSessionId = proc.NewWindow.Session.Id, NewAppId = proc.NewWindow.Session.App.Id
+                    });
                     _logger.LogInformation("{s} - {e} Switch `{win1}` ({app1}) to `{win2}` ({app2})",
                         proc.Start, proc.End,
                         proc.CurrentWindow.Title, proc.CurrentWindow.Session.App.Identification,
@@ -96,7 +126,7 @@ namespace Cobalt.Engine
             await _watchLoop.Run(stoppingToken);
 
             _fgWinWatcher.Dispose();
-            //_sysWatcher.Dispose();
+            _repo.Dispose();
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
