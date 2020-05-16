@@ -6,11 +6,11 @@ using Cobalt.Common.Communication.Messages;
 
 namespace Cobalt.Engine.Services
 {
-    public class EngineService : IEngineService
+    public class UsageService : IUsageService
     {
         private readonly Subject<UsageSwitch> _fgWinSwitches = new Subject<UsageSwitch>();
 
-        public IAsyncEnumerable<UsageSwitch> UsageSwitches()
+        public IAsyncEnumerable<UsageSwitch> ForegroundUsageSwitches()
         {
             return _fgWinSwitches.ToAsyncEnumerable();
         }

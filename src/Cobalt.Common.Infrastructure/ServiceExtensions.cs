@@ -1,5 +1,4 @@
-﻿using System;
-using System.Reflection;
+﻿using System.Reflection;
 using Cobalt.Common.Data.Migrations;
 using Cobalt.Common.Data.Repository;
 using Microsoft.Data.Sqlite;

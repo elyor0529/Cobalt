@@ -42,11 +42,6 @@ namespace Cobalt.Engine.Infos
                 return _handle;
             }
         }
-        public void Dispose()
-        {
-            Handle.Dispose();
-        }
-
 
 
         public IObservable<Unit> Exited
@@ -66,6 +61,18 @@ namespace Cobalt.Engine.Infos
 
                 return () => { callback = null; };
             });
+
+        public void Dispose()
+        {
+            Handle.Dispose();
+        }
+
+        public bool Equals(ProcessInfo other)
+        {
+            if (ReferenceEquals(null, other)) return false;
+            if (ReferenceEquals(this, other)) return true;
+            return Id == other.Id;
+        }
 
         public ValueTask<AppIdentification> GetIdentification()
         {
@@ -125,13 +132,6 @@ namespace Cobalt.Engine.Infos
                 if (ret) return buffer.ToString();
                 Win32Error.ThrowLastErrorUnless(Win32Error.ERROR_INSUFFICIENT_BUFFER);
             }
-        }
-
-        public bool Equals(ProcessInfo other)
-        {
-            if (ReferenceEquals(null, other)) return false;
-            if (ReferenceEquals(this, other)) return true;
-            return Id == other.Id;
         }
 
         public override bool Equals(object obj)

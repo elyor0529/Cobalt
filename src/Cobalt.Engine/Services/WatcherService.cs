@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -8,23 +7,22 @@ using Cobalt.Common.Communication.Messages;
 using Cobalt.Common.Data.Entities;
 using Cobalt.Common.Data.Repository;
 using Cobalt.Engine.Infos;
-using Cobalt.Engine.Services;
 using Cobalt.Engine.Watchers;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.FSharp.Core;
 
-namespace Cobalt.Engine
+namespace Cobalt.Engine.Services
 {
-    public class EngineWorker : BackgroundService
+    public class WatcherService : BackgroundService
     {
-        private readonly EngineService _engineSvc;
+        private readonly UsageService _engineSvc;
         private readonly ForegroundWindowWatcher _fgWinWatcher;
-        private readonly ILogger<EngineWorker> _logger;
+        private readonly ILogger<WatcherService> _logger;
         private readonly IDbRepository _repo;
         private readonly WatchLoop _watchLoop;
 
-        public EngineWorker(ILogger<EngineWorker> logger, EngineService engineSvc, IDbRepository repo)
+        public WatcherService(ILogger<WatcherService> logger, UsageService engineSvc, IDbRepository repo)
         {
             _logger = logger;
             _engineSvc = engineSvc;

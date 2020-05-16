@@ -5,9 +5,9 @@ using Cobalt.Common.Communication.Messages;
 namespace Cobalt.Common.Communication
 {
     [ServiceContract]
-    public interface IEngineService
+    public interface IUsageService
     {
         [OperationContract]
-        public IAsyncEnumerable<UsageSwitch> UsageSwitches();
+        public IAsyncEnumerable<UsageSwitch> ForegroundUsageSwitches();
     }
 }
