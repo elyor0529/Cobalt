@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -92,22 +93,27 @@ namespace Cobalt.Engine
                     CurrentWindow = sws[0].Window,
                     NewWindow = sws[1].Window
                 })
-                .Subscribe(proc =>
+                .Subscribe(fgUsage =>
                 {
                     var usage = _repo.Insert(new Usage
                     {
-                        Start = proc.Start,
-                        End = proc.End,
-                        Session = proc.CurrentWindow.Session
+                        Start = fgUsage.Start,
+                        End = fgUsage.End,
+                        Session = fgUsage.CurrentWindow.Session
                     });
                     _engineSvc.PushUsageSwitch(new UsageSwitch
                     {
                         AppId = usage.Session.App.Id, SessionId = usage.Session.Id, UsageId = usage.Id,
-                        NewSessionId = proc.NewWindow.Session.Id, NewAppId = proc.NewWindow.Session.App.Id
+                        NewSessionId = fgUsage.NewWindow.Session.Id, NewAppId = fgUsage.NewWindow.Session.App.Id
                     });
+                    _logger.LogDebug(
+                        "[SWITCH ({Start} : {End}) = {Duration}]\n`{CurrentSessionTitle}`\n({CurrentApp})\n\nto\n`{NewSessionTitle}`\n({NewApp})",
+                        fgUsage.Start, fgUsage.End, fgUsage.End - fgUsage.Start,
+                        fgUsage.CurrentWindow.Title, fgUsage.CurrentWindow.Session.App, fgUsage.NewWindow.Title,
+                        fgUsage.NewWindow.Session.App);
                 });
 
-            var sys = _sysWatcher.Subscribe(x => _repo.Insert(x));
+            var sys = _sysWatcher.ObserveOn(ThreadPoolScheduler.Instance).Subscribe(x => _repo.Insert(x));
 
             _fgWinWatcher.Watch();
             _sysWatcher.Watch();
