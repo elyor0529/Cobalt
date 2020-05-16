@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Reactive;
 using System.Reactive.Linq;
+using Cobalt.Common.Data.Entities;
 using Cobalt.Common.Utils;
 using Vanara.PInvoke;
 
@@ -24,7 +25,7 @@ namespace Cobalt.Engine.Infos
         public string Title { get; }
         public string Path { get; }
         public bool IsWinStoreApp { get; }
-        public ProcessInfo Process { get; set; }
+        public Session Session { get; set; }
 
 
         public IObservable<Unit> Closed =>

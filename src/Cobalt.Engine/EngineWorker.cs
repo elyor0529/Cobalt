@@ -3,6 +3,7 @@ using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Cobalt.Common.Communication.Messages;
+using Cobalt.Common.Data.Entities;
 using Cobalt.Common.Data.Repository;
 using Cobalt.Engine.Infos;
 using Cobalt.Engine.Services;
@@ -32,41 +33,52 @@ namespace Cobalt.Engine
             _repo = repo;
         }
 
+        private async ValueTask WithSession(BasicWindowInfo win, ProcessInfo proc)
+        {
+            // TODO just insert a new session
+            win.Session = new Session {App = proc.App};
+        }
+
+        private async ValueTask WithApp(ProcessInfo proc)
+        {
+            var id = await proc.GetIdentification();
+            // TODO find by id, if exists return that else insert new app
+            proc.App = new App();
+        }
+
         private async Task Work(CancellationToken stoppingToken)
         {
-            // make window and processinfo idisposable, then call dispose when they get closed and exited
-
             _fgWinWatcher
+                // group by window, until the window closes
                 .GroupByUntil(
                     sw => sw.Window,
                     win => win.Key.Closed)
+                // group by process, until the process exits
                 .GroupByUntil(
                     win => new ProcessInfo(win.Key),
                     proc => proc.Key.Exited)
+                // set the app for the process
+                .Do(async proc => await WithApp(proc.Key))
+                // flatten the groups back
                 .SelectMany(proc =>
-                {
-                    return proc
-                            .Finally(async () =>
-                            {
-                                proc.Key.Dispose();
-                                _logger.LogError("APP {} closed", await proc.Key.GetIdentification());
-                            })
-                            .SelectMany(win => win
-                                .Do(w => w.Window.Process = proc.Key).Finally(() =>
-                                {
-                                    win.Key.Dispose();
-                                    _logger.LogError("window {} closed", win.Key.Title);
-                                }))
-                        ;
-                })
+                    proc
+                        // set the session for the window
+                        .Do(async win => await WithSession(win.Key, proc.Key))
+                        // dispose of the process once the process exits
+                        .Finally(() => proc.Key.Dispose())
+                        .SelectMany(win =>
+                            // dispose of the window once it closes
+                            win.Finally(() => win.Key.Dispose())))
+                // select every 2 switches
                 .Buffer(2, 1)
+                // and convert them to a usage
                 .Select(sws => new ForegroundWindowUsage(sws[0], sws[1]))
-                .Subscribe(async proc =>
+                .Subscribe(proc =>
                 {
                     _logger.LogInformation("{s} - {e} Switch `{win1}` ({app1}) to `{win2}` ({app2})",
                         proc.Start, proc.End,
-                        proc.CurrentWindow.Title, await proc.CurrentWindow.Process.GetIdentification(),
-                        proc.NewWindow.Title, await proc.NewWindow.Process.GetIdentification());
+                        proc.CurrentWindow.Title, proc.CurrentWindow.Session.App.Identification,
+                        proc.NewWindow.Title, proc.NewWindow.Session.App.Identification);
                 });
 
             _fgWinWatcher.Count().Subscribe(x =>

@@ -25,6 +25,8 @@ namespace Cobalt.Engine.Infos
         public bool IsWinStoreApp { get; }
         public string Path { get; }
 
+        public App App { get; set; }
+
         public Kernel32.SafeHPROCESS Handle
         {
             get
