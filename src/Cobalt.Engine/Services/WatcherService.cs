@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Cobalt.Common.Communication.Messages;
 using Cobalt.Common.Data.Entities;
 using Cobalt.Common.Data.Repository;
+using Cobalt.Engine.Extractors;
 using Cobalt.Engine.Infos;
 using Cobalt.Engine.Watchers;
 using Microsoft.Extensions.Hosting;
@@ -21,13 +22,17 @@ namespace Cobalt.Engine.Services
         private readonly ILogger<WatcherService> _logger;
         private readonly IDbRepository _repo;
         private readonly WatchLoop _watchLoop;
+        private IProcessInfoExtractor _procInfo;
+        private IWindowInfoExtractor _winInfo;
 
-        public WatcherService(ILogger<WatcherService> logger, UsageService engineSvc, IDbRepository repo)
+        public WatcherService(ILogger<WatcherService> logger, IProcessInfoExtractor procInfo, IWindowInfoExtractor winInfo, UsageService engineSvc, IDbRepository repo)
         {
             _logger = logger;
             _engineSvc = engineSvc;
             _watchLoop = new WatchLoop();
             _fgWinWatcher = new ForegroundWindowWatcher();
+            _procInfo = procInfo;
+            _winInfo = winInfo;
 
             _repo = repo;
         }
@@ -45,7 +50,7 @@ namespace Cobalt.Engine.Services
 
         private async ValueTask WithApp(ProcessInfo proc)
         {
-            var id = await proc.GetIdentification();
+            var id = await _procInfo.GetIdentification(proc);
             proc.App = ValueOption.ToObj(_repo.FindAppByIdentification(id)) ?? _repo.Insert(new App
             {
                 Identification = id,
@@ -60,12 +65,12 @@ namespace Cobalt.Engine.Services
             using var usages = _fgWinWatcher
                 // group by window, until the window closes
                 .GroupByUntil(
-                    sw => new WindowInfo(sw.Window),
-                    win => win.Key.Closed)
+                    sw => _winInfo.Extract(sw.Window),
+                    win => _winInfo.Closed(win.Key))
                 // group by process, until the process exits
                 .GroupByUntil(
-                    win => new ProcessInfo(win.Key),
-                    proc => proc.Key.Exited)
+                    win => _procInfo.Extract(win.Key),
+                    proc => _procInfo.Exited(proc.Key))
                 // set the app for the process
                 .Do(async proc =>
                 {
@@ -84,14 +89,14 @@ namespace Cobalt.Engine.Services
                         // dispose of the process once the process exits
                         .Finally(() =>
                         {
-                            proc.Key.Dispose();
+                            _procInfo.Dispose(proc.Key);
                             _logger.LogDebug("Process {App} Exited", proc.Key.App);
                         })
                         .SelectMany(win =>
                             // dispose of the window once it closes
                             win.Finally(() =>
                                 {
-                                    win.Key.Dispose();
+                                    _winInfo.Dispose(win.Key);
                                     _logger.LogDebug("Window {Session} Closed", win.Key.Session);
                                 })
                                 .Select(sw => new {sw.ActivatedTimestamp, Window = win.Key})))

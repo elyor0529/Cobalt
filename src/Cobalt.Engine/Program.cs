@@ -1,6 +1,7 @@
 ﻿using System.IO.Compression;
 using Cobalt.Common.Communication;
 using Cobalt.Common.Infrastructure;
+using Cobalt.Engine.Extractors;
 using Cobalt.Engine.Services;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Builder;
@@ -29,6 +30,8 @@ namespace Cobalt.Engine
                     services.AddCodeFirstGrpc(config =>
                         config.ResponseCompressionLevel = CompressionLevel.Optimal);
 
+                    services.AddSingleton<IWindowInfoExtractor, WindowInfoExtractor>();
+                    services.AddSingleton<IProcessInfoExtractor, ProcessInfoExtractor>();
                     services.AddSingleton<UsageService>();
                     services.AddHostedService<WatcherService>();
                 })
