@@ -42,7 +42,7 @@ namespace Cobalt.Engine
                     opts.ListenLocalhost(CommunicationManager.Port,
                         lstOpts => { lstOpts.Protocols = HttpProtocols.Http2; });
                 })
-                .UseSerilog(dispose: true);
+                .UseSerilog();
         }
     }
 }

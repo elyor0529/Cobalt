@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using Microsoft.AspNetCore.Hosting;
 using Serilog;
 
@@ -10,12 +11,13 @@ namespace Cobalt.Common.Infrastructure
         {
             try
             {
-                Log.Information("Starting up");
+                Log.Information("Starting up host");
                 host.Run();
             }
             catch (Exception ex)
             {
-                Log.Fatal(ex, "Application unexpectedly terminated!");
+                Log.Fatal(ex, "Unexpected Error!");
+                Debugger.Break();
             }
             finally
             {

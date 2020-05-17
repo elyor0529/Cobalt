@@ -4,7 +4,10 @@ using Cobalt.Common.Data.Repository;
 using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog;
+using Serilog.Exceptions;
+using Serilog.Exceptions.Core;
 using Serilog.Formatting.Compact;
+using Serilog.Formatting.Json;
 
 namespace Cobalt.Common.Infrastructure
 {
@@ -17,6 +20,7 @@ namespace Cobalt.Common.Infrastructure
                 // TODO read this from appsettings.json, default should be above Information
                 // TODO override certain messages so that they are not so noisy e.g. Asp.Net/Grpc setup
                 .MinimumLevel.Verbose()
+                .Enrich.WithExceptionDetails()
                 .Enrich.FromLogContext()
                 .WriteTo.Console()
                 .WriteTo.File(new RenderedCompactJsonFormatter(), $"{assemblyName ?? "DefaultCobalt"}.log.txt")
