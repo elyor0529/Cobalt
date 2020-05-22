@@ -1,14 +1,23 @@
 ﻿using System;
+using System.IO;
 using System.Reactive;
 using System.Reactive.Linq;
 using System.Reflection.Metadata;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
+using Windows.ApplicationModel;
+using Windows.Foundation;
+using Windows.Foundation.Metadata;
+using Windows.System;
 using Cobalt.Common.Data.Entities;
 using Cobalt.Common.Utils;
 using Cobalt.Engine.Infos;
 using Microsoft.Extensions.Logging;
+using Vanara.Extensions;
+using Vanara.InteropServices;
 using Vanara.PInvoke;
+using WinRT;
 
 namespace Cobalt.Engine.Extractors
 {
@@ -19,6 +28,7 @@ namespace Cobalt.Engine.Extractors
         ValueTask<AppIdentification> GetIdentification(ProcessInfo proc);
         void Dispose(ProcessInfo proc);
         string GetWindowsStoreAppUserModelId(Kernel32.SafeHPROCESS handle);
+        string GetCommandLine(Kernel32.SafeHPROCESS handle);
         string GetPath(Kernel32.SafeHPROCESS handle);
     }
 
@@ -76,6 +86,35 @@ namespace Cobalt.Engine.Extractors
             }
 
             return new ValueTask<AppIdentification>(AppIdentification.NewWin32(proc.Path));
+        }
+
+        public async ValueTask<(string, Stream)> GetAppInfoForWinStore(ProcessInfo proc, string aumid)
+        {
+            var infos = await AppDiagnosticInfo.RequestInfoForAppAsync(aumid);
+            var info = infos[0].AppInfo;
+            var logoStream = await info?.DisplayInfo?.GetLogo(new Size(144, 144))?.OpenReadAsync();
+            return (info?.DisplayInfo?.DisplayName, logoStream.As<Stream>());
+        }
+
+        public string GetCommandLine(Kernel32.SafeHPROCESS handle)
+        {
+            var info = NtDll.NtQueryInformationProcess<NtDll.PROCESS_BASIC_INFORMATION>(handle,
+                NtDll.PROCESSINFOCLASS.ProcessBasicInformation);
+
+            var pebSz = Marshal.SizeOf<NtDll.PEB>();
+            var pebPtr = Marshal.AllocHGlobal(pebSz);
+            Kernel32.ReadProcessMemory(handle, info.AsRef().PebBaseAddress, pebPtr, pebSz, out var pebSzRead).CheckValid();
+            var peb = Marshal.PtrToStructure<NtDll.PEB>(pebPtr);
+            Marshal.FreeHGlobal(pebPtr);
+
+            var rtlUserParamsSz = Marshal.SizeOf<NtDll.RTL_USER_PROCESS_PARAMETERS>();
+            var rtlUserParamsPtr = Marshal.AllocHGlobal(rtlUserParamsSz);
+            Kernel32.ReadProcessMemory(handle, peb.ProcessParameters, rtlUserParamsPtr, rtlUserParamsSz,
+                out var rtlUserParamsRead).CheckValid();
+            var rtlUserParams = Marshal.PtrToStructure<NtDll.RTL_USER_PROCESS_PARAMETERS>(rtlUserParamsPtr);
+            Marshal.FreeHGlobal(rtlUserParamsPtr);
+
+            return rtlUserParams.CommandLine.Buffer; // lets test if this works
         }
 
         public void Dispose(ProcessInfo proc)

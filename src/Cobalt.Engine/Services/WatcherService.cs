@@ -123,11 +123,12 @@ namespace Cobalt.Engine.Services
                         AppId = usage.Session.App.Id, SessionId = usage.Session.Id, UsageId = usage.Id,
                         NewSessionId = fgUsage.NewWindow.Session.Id, NewAppId = fgUsage.NewWindow.Session.App.Id
                     });
+                    /*
                     _logger.LogDebug(
                         "[SWITCH ({Start} : {End}) = {Duration}]\n`{CurrentSessionTitle}`\n({CurrentApp})\n\nto\n`{NewSessionTitle}`\n({NewApp})",
                         fgUsage.Start, fgUsage.End, fgUsage.End - fgUsage.Start,
                         fgUsage.CurrentWindow.Title, fgUsage.CurrentWindow.Session.App, fgUsage.NewWindow.Title,
-                        fgUsage.NewWindow.Session.App);
+                        fgUsage.NewWindow.Session.App);*/
                 });
 
             _fgWinWatcher.Watch();
