@@ -3,6 +3,11 @@ using System.IO;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Windows.ApplicationModel;
+using Windows.Foundation;
+using Windows.Management.Deployment;
+using Windows.Storage.Streams;
+using Windows.System;
 using Cobalt.Common.Communication.Messages;
 using Cobalt.Common.Data.Entities;
 using Cobalt.Common.Data.Repository;
@@ -12,6 +17,7 @@ using Cobalt.Engine.Watchers;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.FSharp.Core;
+using Vanara.PInvoke;
 
 namespace Cobalt.Engine.Services
 {
@@ -51,6 +57,10 @@ namespace Cobalt.Engine.Services
         private async ValueTask WithApp(ProcessInfo proc)
         {
             var id = await _procInfo.GetIdentification(proc);
+            if (id is AppIdentification.UWP u)
+            {
+                var (name, logo) = await GetAppInfoForWinStore(proc, u.AUMID);
+            }
             proc.App = ValueOption.ToObj(_repo.FindAppByIdentification(id)) ?? _repo.Insert(new App
             {
                 Identification = id,
@@ -58,6 +68,15 @@ namespace Cobalt.Engine.Services
                 Icon = new MemoryStream(), // TODO
                 Name = "" // TODO
             });
+        }
+
+        public async ValueTask<(string, IRandomAccessStreamWithContentType)> GetAppInfoForWinStore(ProcessInfo proc, string aumid)
+        {
+            var infos = await AppDiagnosticInfo.RequestInfoForAppAsync(aumid);
+            if (infos.Count == 0 || infos[0] == null || infos[0].AppInfo == null) return (null, null);
+            var info = infos[0].AppInfo;
+            var logoStream = await info.DisplayInfo.GetLogo(new Size(144, 144)).OpenReadAsync();
+            return (info?.DisplayInfo?.DisplayName, logoStream);
         }
 
         private async Task Work(CancellationToken stoppingToken)
