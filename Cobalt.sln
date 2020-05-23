@@ -3,8 +3,6 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.29306.81
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cobalt.Engine", "src\Cobalt.Engine\Cobalt.Engine.csproj", "{887333EF-1AC3-4609-A036-FF4D37B282A4}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cobalt.Common.Utils", "src\Cobalt.Common.Utils\Cobalt.Common.Utils.csproj", "{5A34BAE3-DC4E-4F38-AA4C-14232CF4E815}"
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Cobalt.Common.Data", "src\Cobalt.Common.Data\Cobalt.Common.Data.fsproj", "{AE91C34A-C565-4266-82EE-A33BF5A4A57C}"
@@ -15,7 +13,7 @@ Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Cobalt.Tests", "tests\Cobal
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cobalt.Tests.Benchmarks", "tests\Cobalt.Tests.Benchmarks\Cobalt.Tests.Benchmarks.csproj", "{318754C8-6B45-4BD5-B4C9-2EE37FD2A7B1}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Cobalt.Common.Infrastructure", "src\Cobalt.Common.Infrastructure\Cobalt.Common.Infrastructure.csproj", "{0D34B25B-900E-480E-831A-69F79D04C729}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Cobalt.Common.Infrastructure", "src\Cobalt.Common.Infrastructure\Cobalt.Common.Infrastructure.csproj", "{0D34B25B-900E-480E-831A-69F79D04C729}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,10 +21,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{887333EF-1AC3-4609-A036-FF4D37B282A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{887333EF-1AC3-4609-A036-FF4D37B282A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{887333EF-1AC3-4609-A036-FF4D37B282A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{887333EF-1AC3-4609-A036-FF4D37B282A4}.Release|Any CPU.Build.0 = Release|Any CPU
 		{5A34BAE3-DC4E-4F38-AA4C-14232CF4E815}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{5A34BAE3-DC4E-4F38-AA4C-14232CF4E815}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{5A34BAE3-DC4E-4F38-AA4C-14232CF4E815}.Release|Any CPU.ActiveCfg = Release|Any CPU
