@@ -61,3 +61,8 @@ let ``switching foreground with more than two apps`` () =
         delayed proc3.makeFg)
     test <@ not e.completed && e.noExns && e.values.Length = 4 @>
     cts.Cancel()
+
+[<Fact>]
+let nativeAddTest () =
+    let res = Cobalt.Engine.Native.Watchers.add(1, 2)
+    test <@ res = 3 @>
