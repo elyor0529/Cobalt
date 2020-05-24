@@ -6,6 +6,8 @@ open Cobalt.Tests.Util
 open Cobalt.Engine.Watchers
 open Vanara.PInvoke
 open System.Threading
+open System
+open System.Diagnostics
 
 [<Fact>]
 let ``switching foreground with two apps`` () =
@@ -64,5 +66,8 @@ let ``switching foreground with more than two apps`` () =
 
 [<Fact>]
 let nativeAddTest () =
-    let res = Cobalt.Engine.Native.Watchers.add(1, 2)
+    let res = Cobalt.Engine.Native.Watchers.add(1, 2);
+    let mutable obs = new Cobalt.Engine.Native.NativeObservable<uint32>();
+    obs.OnNext <- System.Action<uint32>((fun (x) -> Debug.WriteLine(x); Trace.WriteLine(x) |> ignore))
+    Cobalt.Engine.Native.Watchers.interval(obs)
     test <@ res = 3 @>
