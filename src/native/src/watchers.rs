@@ -18,7 +18,7 @@ pub struct BasicWindowInfo {
 
 pub struct ForegroundWindowSwitch {
     pub win: BasicWindowInfo,
-    pub ticks: i64
+    pub filetime_ticks: i64
 }
 
 pub static mut FOREGROUND_WINDOW_WATCHER_INSTANCE: Option<ForegroundWindowWatcher> = None;
@@ -54,9 +54,9 @@ unsafe extern "system" fn foreground_window_watcher_handler(
 
     let watcher = FOREGROUND_WINDOW_WATCHER_INSTANCE.as_ref().unwrap();
     let title = window_title(hwnd);
-    let ticks = current_ticks() + (dwms_event_time as i64 - sysinfoapi::GetTickCount64() as i64) * 10_000;
+    let ticks = to_filetime_ticks(dwms_event_time);
     let win = BasicWindowInfo { id: hwnd, title  };
-    let fg_switch = ForegroundWindowSwitch { win, ticks };
+    let fg_switch = ForegroundWindowSwitch { win, filetime_ticks: ticks };
     (watcher.sub.on_next)(&fg_switch);
 }
 
@@ -69,10 +69,12 @@ pub unsafe fn window_title(hwnd: windef::HWND) -> FfiString {
 }
 
 #[no_mangle]
-pub unsafe fn current_ticks() -> i64 {
-    let mut time: ntdef::LARGE_INTEGER = mem::zeroed();
-    ntapi::ntexapi::NtQuerySystemTime(&mut time);
-    *time.QuadPart() 
+pub unsafe fn to_filetime_ticks(ticks: minwindef::DWORD) -> i64 {
+    let mut ft: minwindef::FILETIME = mem::zeroed();
+    sysinfoapi::GetSystemTimePreciseAsFileTime(&mut ft);
+    let millis_diff = ticks as i64 - sysinfoapi::GetTickCount64() as i64;
+    let ticks = *(&mut ft as *mut _ as *mut i64);
+    ticks + millis_diff * 10_000
 }
 
 #[no_mangle]

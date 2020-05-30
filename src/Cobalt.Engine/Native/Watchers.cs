@@ -33,7 +33,7 @@ namespace Cobalt.Engine.Native
     public struct ForegroundWindowSwitch
     {
         public readonly BasicWindowInfo Window;
-        public readonly long Ticks;
+        public readonly long FileTimeTicks;
     }
 
 
