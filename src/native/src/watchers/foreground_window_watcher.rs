@@ -25,7 +25,7 @@ pub static mut FOREGROUND_WINDOW_WATCHER_INSTANCE: Option<ForegroundWindowWatche
 
 #[no_mangle]
 pub unsafe fn add() -> FfiResult<u32> {
-    FfiResult::Ok(1337)
+    FfiResult::Err(Error { code: 05, cause: String::from("what") })
 }
 
 #[no_mangle]

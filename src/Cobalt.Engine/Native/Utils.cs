@@ -35,18 +35,18 @@ namespace Cobalt.Engine.Native
 
     // TODO doesn't work cuz generics don't work in PInvoke
     [StructLayout(LayoutKind.Explicit)]
-    public unsafe struct FfiResult<T> where T: struct
+    public unsafe struct FfiResult
     {
-        [FieldOffset(0)] public byte Tag;
+        [FieldOffset(0)] public long Tag;
 
-        [FieldOffset(1)] public T Ok;
-        [FieldOffset(1)] public Error Error;
+        [FieldOffset(8)] public uint Ok;
+        [FieldOffset(8)] public Error Error;
     }
 
     public static class What
     {
         [DllImport(Constants.NativeLibrary)]
-        public static extern FfiResult<uint> add();
+        public static extern FfiResult add();
     }
 
     [StructLayout(LayoutKind.Sequential)]

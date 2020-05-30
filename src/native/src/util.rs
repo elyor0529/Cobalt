@@ -1,7 +1,7 @@
 #[macro_use]
 pub type FfiString = Vec<u16>;
 
-#[repr(C, u8)]
+#[repr(C, usize)]
 pub enum FfiResult<T> {
     Ok(T),
     Err(Error)
