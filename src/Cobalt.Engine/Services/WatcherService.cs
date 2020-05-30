@@ -61,6 +61,7 @@ namespace Cobalt.Engine.Services
 
         private async Task Work(CancellationToken stoppingToken)
         {
+            //var res = Native.What.add();
             using var usages = Window.ForegroundWatcher
                 // group by window, until the window closes
                 .GroupByUntil(

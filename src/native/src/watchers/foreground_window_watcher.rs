@@ -9,17 +9,24 @@ pub struct ForegroundWindowWatcher {
     pub sub: Subscription<ForegroundWindowSwitch>
 }
 
+#[repr(C)]
 pub struct BasicWindowInfo {
     pub id: windef::HWND,
     pub title: FfiString
 }
 
+#[repr(C)]
 pub struct ForegroundWindowSwitch {
     pub win: BasicWindowInfo,
     pub filetime_ticks: i64
 }
 
 pub static mut FOREGROUND_WINDOW_WATCHER_INSTANCE: Option<ForegroundWindowWatcher> = None;
+
+#[no_mangle]
+pub unsafe fn add() -> FfiResult<u32> {
+    FfiResult::Ok(1337)
+}
 
 #[no_mangle]
 pub unsafe fn foreground_window_watcher_begin(sub: Subscription<ForegroundWindowSwitch>) {
@@ -30,7 +37,7 @@ pub unsafe fn foreground_window_watcher_begin(sub: Subscription<ForegroundWindow
         Some(foreground_window_watcher_handler),
         0, 0,
         winuser::WINEVENT_OUTOFCONTEXT);
-    FOREGROUND_WINDOW_WATCHER_INSTANCE = Some(ForegroundWindowWatcher { hook, sub })
+    FOREGROUND_WINDOW_WATCHER_INSTANCE = Some(ForegroundWindowWatcher { hook, sub });
 }
 
 #[no_mangle]

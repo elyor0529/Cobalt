@@ -1,16 +1,58 @@
+#[macro_use]
 pub type FfiString = Vec<u16>;
 
-pub struct Error {
-    pub cause: FfiString
+#[repr(C, u8)]
+pub enum FfiResult<T> {
+    Ok(T),
+    Err(Error)
 }
 
+#[repr(C)]
+pub struct Error {
+    pub code: i32,
+    pub cause: String
+}
+
+#[repr(C)]
 pub struct Subscription<T> {
     pub on_next: extern "cdecl" fn(&T),
     pub on_error: extern "cdecl" fn(Error),
     pub on_complete: extern "cdecl" fn(),
 }
 
-#[macro_use]
+impl<T> FfiResult<T> {
+    pub fn get_last_err() -> FfiResult<T> {
+        let err = std::io::Error::last_os_error();
+        FfiResult::Err(Error { code: err.raw_os_error().unwrap(), cause: err.to_string() })
+    }
+}
+
+impl<T> std::ops::Try for FfiResult<T>  {
+    type Ok = T;
+    type Error = Error;
+
+    fn into_result(self) -> Result<T, Error> {
+        match self {
+            FfiResult::Ok(x) => Ok(x),
+            FfiResult::Err(e) => Err(e)
+        }
+    }
+
+    fn from_ok(v: T) -> Self {
+        FfiResult::Ok(v)
+    }
+
+    fn from_error(e: Error) -> Self {
+        FfiResult::Err(e)
+    }
+}
+
+macro_rules! valid_bool {
+    ($e: expr) => {{
+        if $e { FfiResult::Ok(()) } else { FfiResult::get_last_err() }
+    }};
+}
+
 macro_rules! read_unicode_string {
     ($p: expr, $str: expr) => {{
         let mut buf_len = $str.Length as usize / 2;

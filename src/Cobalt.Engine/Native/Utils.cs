@@ -27,6 +27,29 @@ namespace Cobalt.Engine.Native
     }
 
     [StructLayout(LayoutKind.Sequential)]
+    public unsafe struct Error
+    {
+        public uint Code;
+        public IntPtr Cause;
+    }
+
+    // TODO doesn't work cuz generics don't work in PInvoke
+    [StructLayout(LayoutKind.Explicit)]
+    public unsafe struct FfiResult<T> where T: struct
+    {
+        [FieldOffset(0)] public byte Tag;
+
+        [FieldOffset(1)] public T Ok;
+        [FieldOffset(1)] public Error Error;
+    }
+
+    public static class What
+    {
+        [DllImport(Constants.NativeLibrary)]
+        public static extern FfiResult<uint> add();
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
     public struct Subscription
     {
         public OnNext OnNext;

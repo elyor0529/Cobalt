@@ -18,14 +18,12 @@ let ``switching foreground with two apps`` () =
     use proc1 = new Proc "winver.exe"
     use proc2 = new Proc "notepad.exe"
 
-    let fgWatcher = new ForegroundWindowWatcher()
+    let fgWatcher = Window.ForegroundWatcher
     let cts = new CancellationTokenSource()
 
     async {
-        fgWatcher.Watch()
         let msgLoop = WatchLoop()
-        let! _ = msgLoop.Run(cts.Token).AsTask() |> Async.AwaitTask
-        fgWatcher.Dispose()
+        msgLoop.Run(cts.Token).AsTask() |> Async.AwaitTask |> ignore
     } |> Async.Start
 
     let e = monitor fgWatcher (fun () -> Thread.Sleep(1000))
@@ -47,14 +45,12 @@ let ``switching foreground with more than two apps`` () =
     use proc2 = new Proc "notepad.exe"
     use proc3 = new Proc @"C:\Program Files\Windows NT\Accessories\wordpad.exe"
 
-    let fgWatcher = new ForegroundWindowWatcher()
+    let fgWatcher = Window.ForegroundWatcher
     let cts = new CancellationTokenSource()
 
     async {
-        fgWatcher.Watch()
-        let msgLoop = WatchLoop()
-        let! _ = msgLoop.Run(cts.Token).AsTask() |> Async.AwaitTask
-        fgWatcher.Dispose()
+        let msgLoop = WatchLoop();
+        msgLoop.Run(cts.Token).AsTask() |> Async.AwaitTask |> ignore
     } |> Async.Start
 
     let e = monitor fgWatcher (fun () -> delayed proc1.makeFg)
@@ -67,14 +63,3 @@ let ``switching foreground with more than two apps`` () =
         delayed proc3.makeFg)
     test <@ not e.completed && e.noExns && e.values.Length = 4 @>
     cts.Cancel()
-
-[<Fact>]
-let nativeAddTest () =
-    let res = Watchers.add(1, 2);
-    //let mutable obs = new NativeObservable();
-    //obs.OnNext <- OnNext((fun (x) -> Trace.WriteLine(Unsafe.AsRef<uint32>(x)) |> ignore))
-    //obs.OnCompleted <- OnCompleted((fun () -> Trace.WriteLine("Done") |> ignore))
-    //Watchers.interval(ref obs)
-    //let o = NativeObservable<uint32>(Subscribe(Watchers.interval), Unsubscribe(Watchers.un_interval)).ToEnumerable() |> Seq.toArray
-    test <@ res = 3 @>
-    //test <@ o = [|0u..9u|] @>
