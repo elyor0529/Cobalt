@@ -1,10 +1,5 @@
 ﻿using System;
-using System.Reactive;
-using System.Reactive.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Cobalt.Common.Data.Entities;
-using Cobalt.Common.Utils;
 using Vanara.PInvoke;
 
 namespace Cobalt.Engine.Infos
@@ -36,7 +31,7 @@ namespace Cobalt.Engine.Infos
         {
             if (obj is null) return false;
             if (ReferenceEquals(this, obj)) return true;
-            return obj.GetType() == GetType() && Equals((ProcessInfo)obj);
+            return obj.GetType() == GetType() && Equals((ProcessInfo) obj);
         }
 
         public override int GetHashCode()

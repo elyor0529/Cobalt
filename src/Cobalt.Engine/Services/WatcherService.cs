@@ -18,19 +18,18 @@ namespace Cobalt.Engine.Services
     public class WatcherService : BackgroundService
     {
         private readonly UsageService _engineSvc;
-        private readonly ForegroundWindowWatcher _fgWinWatcher;
         private readonly ILogger<WatcherService> _logger;
         private readonly IDbRepository _repo;
         private readonly WatchLoop _watchLoop;
-        private IProcessInfoExtractor _procInfo;
-        private IWindowInfoExtractor _winInfo;
+        private readonly IProcessInfoExtractor _procInfo;
+        private readonly IWindowInfoExtractor _winInfo;
 
-        public WatcherService(ILogger<WatcherService> logger, IProcessInfoExtractor procInfo, IWindowInfoExtractor winInfo, UsageService engineSvc, IDbRepository repo)
+        public WatcherService(ILogger<WatcherService> logger, IProcessInfoExtractor procInfo,
+            IWindowInfoExtractor winInfo, UsageService engineSvc, IDbRepository repo)
         {
             _logger = logger;
             _engineSvc = engineSvc;
             _watchLoop = new WatchLoop();
-            _fgWinWatcher = new ForegroundWindowWatcher();
             _procInfo = procInfo;
             _winInfo = winInfo;
 
@@ -60,10 +59,9 @@ namespace Cobalt.Engine.Services
             });
         }
 
-        private  async Task Work(CancellationToken stoppingToken)
+        private async Task Work(CancellationToken stoppingToken)
         {
-            using var usages = Native.Watchers.ForegroundWindowWatcher
-                .Select(x => new ForegroundWindowSwitch(DateTime.FromFileTime(x.FileTimeTicks), new BasicWindowInfo(x.Window.Handle, x.Window.Title.ToString())))
+            using var usages = Window.ForegroundWatcher
                 // group by window, until the window closes
                 .GroupByUntil(
                     sw => _winInfo.Extract(sw.Window),
@@ -131,11 +129,8 @@ namespace Cobalt.Engine.Services
                         fgUsage.NewWindow.Session.App);
                 });
 
-            _fgWinWatcher.Watch();
-
             await _watchLoop.Run(stoppingToken);
 
-            _fgWinWatcher.Dispose();
             _repo.Dispose();
         }
 

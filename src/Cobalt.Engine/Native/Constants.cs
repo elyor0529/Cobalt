@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace Cobalt.Engine.Native
+﻿namespace Cobalt.Engine.Native
 {
     public static class Constants
     {

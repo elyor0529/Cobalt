@@ -1,9 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Reactive;
 using System.Reactive.Linq;
-using System.Reflection.Metadata;
-using System.Text;
 using Cobalt.Common.Utils;
 using Cobalt.Engine.Infos;
 using Microsoft.Extensions.Logging;
@@ -20,15 +17,15 @@ namespace Cobalt.Engine.Extractors
 
     public class WindowInfoExtractor : IWindowInfoExtractor
     {
+        private static readonly string ApplicationFrameHost = @"C:\Windows\System32\ApplicationFrameHost.exe";
+        private readonly ILogger<WindowInfoExtractor> _logger;
+        private readonly IProcessInfoExtractor _processInfo;
+
         public WindowInfoExtractor(ILogger<WindowInfoExtractor> logger, IProcessInfoExtractor processInfo)
         {
             _logger = logger;
             _processInfo = processInfo;
         }
-
-        private static readonly string ApplicationFrameHost = @"C:\Windows\System32\ApplicationFrameHost.exe";
-        private readonly ILogger<WindowInfoExtractor> _logger;
-        private readonly IProcessInfoExtractor _processInfo;
 
         public WindowInfo Extract(BasicWindowInfo basicWin)
         {
@@ -66,8 +63,9 @@ namespace Cobalt.Engine.Extractors
             return new WindowInfo(handle, title, path, tid, pid, isWinStoreApp);
         }
 
-        public IObservable<Unit> Closed(WindowInfo win) =>
-            Observable.Create<Unit>(obs =>
+        public IObservable<Unit> Closed(WindowInfo win)
+        {
+            return Observable.Create<Unit>(obs =>
             {
                 User32.WinEventProc windowClosed = (eventHook, evnt, hwnd, idObject, child, thread, time) =>
                 {
@@ -83,6 +81,7 @@ namespace Cobalt.Engine.Extractors
                     User32.WINEVENT.WINEVENT_OUTOFCONTEXT).CheckValid();
                 return () => { windowClosed = null; };
             });
+        }
 
         public void Dispose(WindowInfo win)
         {

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Reactive;
 using System.Reactive.Linq;
-using System.Reflection.Metadata;
 using System.Text;
 using System.Threading.Tasks;
 using Cobalt.Common.Data.Entities;
@@ -49,7 +48,8 @@ namespace Cobalt.Engine.Extractors
         }
 
         public IObservable<Unit> Exited(ProcessInfo proc)
-            => Observable.Create<Unit>(obs =>
+        {
+            return Observable.Create<Unit>(obs =>
             {
                 Kernel32.SafeRegisteredWaitHandle wait = null;
                 Kernel32.WaitOrTimerCallback callback = (ctx, fired) =>
@@ -65,6 +65,7 @@ namespace Cobalt.Engine.Extractors
 
                 return () => { callback = null; };
             });
+        }
 
         public ValueTask<AppIdentification> GetIdentification(ProcessInfo proc)
         {
