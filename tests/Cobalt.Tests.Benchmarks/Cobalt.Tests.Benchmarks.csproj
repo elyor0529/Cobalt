@@ -10,6 +10,10 @@
     <Optimize>true</Optimize>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" Version="0.12.1" />
     <PackageReference Include="BenchmarkDotNet.Diagnostics.Windows" Version="0.12.1" />
@@ -20,6 +24,7 @@
     <ProjectReference Include="..\..\src\Cobalt.Common.Data\Cobalt.Common.Data.fsproj" />
     <ProjectReference Include="..\..\src\Cobalt.Common.Infrastructure\Cobalt.Common.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Cobalt.Common.Utils\Cobalt.Common.Utils.csproj" />
+    <ProjectReference Include="..\..\src\Cobalt.Engine\Cobalt.Engine.csproj" />
   </ItemGroup>
 
 </Project>

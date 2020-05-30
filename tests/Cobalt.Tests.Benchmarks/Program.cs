@@ -9,7 +9,7 @@ namespace Cobalt.Tests.Benchmarks
         // https://benchmarkdotnet.org/articles/guides/console-args.html
         public static void Main(string[] args)
         {
-            BenchmarkRunner.Run(typeof(Program).Assembly);
+            BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
         }
     }
 }

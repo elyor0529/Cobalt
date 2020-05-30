@@ -5,6 +5,14 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="protobuf-net.Grpc.AspNetCore" Version="1.0.37" />
     <PackageReference Include="Vanara.PInvoke.Kernel32" Version="3.2.7" />
@@ -25,7 +33,7 @@
     <ContentWithTargetPath Include="../native/target/$(Configuration)/native.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <TargetPath>native.dll</TargetPath>
-    </ContentWithTargetPath >
+    </ContentWithTargetPath>
   </ItemGroup>
 
   <Target Name="BuildNative" BeforeTargets="BeforeBuild" Condition="'$(Configuration)'!='Release'">

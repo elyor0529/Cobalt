@@ -60,9 +60,10 @@ namespace Cobalt.Engine.Services
             });
         }
 
-        private async Task Work(CancellationToken stoppingToken)
+        private  async Task Work(CancellationToken stoppingToken)
         {
-            using var usages = _fgWinWatcher
+            using var usages = Native.Watchers.ForegroundWindowWatcher
+                .Select(x => new ForegroundWindowSwitch(new DateTime(x.Ticks), new BasicWindowInfo(x.Window.Handle, x.Window.Title.ToString())))
                 // group by window, until the window closes
                 .GroupByUntil(
                     sw => _winInfo.Extract(sw.Window),

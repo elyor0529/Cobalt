@@ -19,7 +19,7 @@ namespace Cobalt.Common.Infrastructure
             Log.Logger = new LoggerConfiguration()
                 // TODO read this from appsettings.json, default should be above Information
                 // TODO override certain messages so that they are not so noisy e.g. Asp.Net/Grpc setup
-                .MinimumLevel.Verbose()
+                .MinimumLevel.Debug()
                 .Enrich.WithExceptionDetails()
                 .Enrich.FromLogContext()
                 .WriteTo.Console()

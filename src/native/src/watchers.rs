@@ -1,15 +1,86 @@
-mod watchers;
+use crate::util::*;
+use winapi::um::*;
+use winapi::shared::*;
+use std::*;
+use std::os::windows::prelude::*;
 
-struct Observable<T> {
-    on_next: extern "stdcall" fn(T),
-    on_error: extern "stdcall" fn(u32),
-    on_complete: extern "stdcall" fn(),
-    drop: extern "stdcall" fn()
+type FfiString = Vec<u16>;
+
+pub struct ForegroundWindowWatcher {
+    pub hook: windef::HWINEVENTHOOK,
+    pub sub: Subscription<ForegroundWindowSwitch>
+}
+
+pub struct BasicWindowInfo {
+    pub id: windef::HWND,
+    pub title: FfiString
+}
+
+pub struct ForegroundWindowSwitch {
+    pub win: BasicWindowInfo,
+    pub ticks: i64
+}
+
+pub static mut FOREGROUND_WINDOW_WATCHER_INSTANCE: Option<ForegroundWindowWatcher> = None;
+
+#[no_mangle]
+pub unsafe fn foreground_window_watcher_begin(sub: Subscription<ForegroundWindowSwitch>) {
+    let hook = winuser::SetWinEventHook(
+        winuser::EVENT_SYSTEM_FOREGROUND,
+        winuser::EVENT_SYSTEM_FOREGROUND,
+        ptr::null_mut(),
+        Some(foreground_window_watcher_handler),
+        0, 0,
+        winuser::WINEVENT_OUTOFCONTEXT);
+    FOREGROUND_WINDOW_WATCHER_INSTANCE = Some(ForegroundWindowWatcher { hook, sub })
 }
 
 #[no_mangle]
-fn interval(obs: &Observable<u32>) {
-    for i in 0..5 {
-        obs.on_next(i);
+pub unsafe fn foreground_window_watcher_end() {
+    let watcher = FOREGROUND_WINDOW_WATCHER_INSTANCE.as_ref().unwrap();
+    winuser::UnhookWinEvent(watcher.hook); // TODO check errs
+    FOREGROUND_WINDOW_WATCHER_INSTANCE = None;
+}
+
+unsafe extern "system" fn foreground_window_watcher_handler(
+    _win_event_hook: windef::HWINEVENTHOOK,
+    _event: minwindef::DWORD,
+    hwnd: windef::HWND,
+    _id_object: winnt::LONG,
+    _id_child: winnt::LONG,
+    _id_event_thread: minwindef::DWORD,
+    dwms_event_time: minwindef::DWORD) {
+    if winuser::IsWindow(hwnd) == 0 || winuser::IsWindowVisible(hwnd) == 0 { return; }
+
+    let watcher = FOREGROUND_WINDOW_WATCHER_INSTANCE.as_ref().unwrap();
+    let title = window_title(hwnd);
+    let ticks = current_ticks() + (dwms_event_time as i64 - sysinfoapi::GetTickCount64() as i64) * 10_000;
+    let win = BasicWindowInfo { id: hwnd, title  };
+    let fg_switch = ForegroundWindowSwitch { win, ticks };
+    (watcher.sub.on_next)(&fg_switch);
+}
+
+#[no_mangle]
+pub unsafe fn window_title(hwnd: windef::HWND) -> FfiString {
+    let len = winuser::GetWindowTextLengthW(hwnd);
+    let mut buf = vec![0u16; len as usize + 1];
+    winuser::GetWindowTextW(hwnd, buf.as_mut_ptr(), len + 1);
+    buf
+}
+
+#[no_mangle]
+pub unsafe fn current_ticks() -> i64 {
+    let mut time: ntdef::LARGE_INTEGER = mem::zeroed();
+    ntapi::ntexapi::NtQuerySystemTime(&mut time);
+    *time.QuadPart() 
+}
+
+#[no_mangle]
+pub unsafe fn event_loop(){
+    loop {
+        let mut msg: winuser::MSG = std::mem::zeroed();
+        if 0 == winuser::GetMessageW(&mut msg, ptr::null_mut(), 0,0) { break }
+        winuser::TranslateMessage(&mut msg);
+        winuser::DispatchMessageW(&mut msg);
     }
 }

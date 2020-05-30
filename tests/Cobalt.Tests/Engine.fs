@@ -4,10 +4,14 @@ open Xunit
 open Swensen.Unquote
 open Cobalt.Tests.Util
 open Cobalt.Engine.Watchers
+open Cobalt.Engine.Native
 open Vanara.PInvoke
 open System.Threading
 open System
 open System.Diagnostics
+open System.Reactive.Linq
+open System.Runtime.InteropServices
+open System.Runtime.CompilerServices
 
 [<Fact>]
 let ``switching foreground with two apps`` () =
@@ -66,8 +70,11 @@ let ``switching foreground with more than two apps`` () =
 
 [<Fact>]
 let nativeAddTest () =
-    let res = Cobalt.Engine.Native.Watchers.add(1, 2);
-    let mutable obs = new Cobalt.Engine.Native.NativeObservable<uint32>();
-    obs.OnNext <- System.Action<uint32>((fun (x) -> Debug.WriteLine(x); Trace.WriteLine(x) |> ignore))
-    Cobalt.Engine.Native.Watchers.interval(obs)
+    let res = Watchers.add(1, 2);
+    //let mutable obs = new NativeObservable();
+    //obs.OnNext <- OnNext((fun (x) -> Trace.WriteLine(Unsafe.AsRef<uint32>(x)) |> ignore))
+    //obs.OnCompleted <- OnCompleted((fun () -> Trace.WriteLine("Done") |> ignore))
+    //Watchers.interval(ref obs)
+    //let o = NativeObservable<uint32>(Subscribe(Watchers.interval), Unsubscribe(Watchers.un_interval)).ToEnumerable() |> Seq.toArray
     test <@ res = 3 @>
+    //test <@ o = [|0u..9u|] @>
