@@ -1,10 +1,8 @@
 use crate::util::*;
+use crate::info::*;
 use winapi::um::*;
 use winapi::shared::*;
 use std::*;
-use std::os::windows::prelude::*;
-
-type FfiString = Vec<u16>;
 
 pub struct ForegroundWindowWatcher {
     pub hook: windef::HWINEVENTHOOK,
@@ -53,19 +51,11 @@ unsafe extern "system" fn foreground_window_watcher_handler(
     if winuser::IsWindow(hwnd) == 0 || winuser::IsWindowVisible(hwnd) == 0 { return; }
 
     let watcher = FOREGROUND_WINDOW_WATCHER_INSTANCE.as_ref().unwrap();
-    let title = window_title(hwnd);
+    let title = window::window_title(hwnd);
     let ticks = to_filetime_ticks(dwms_event_time);
     let win = BasicWindowInfo { id: hwnd, title  };
     let fg_switch = ForegroundWindowSwitch { win, filetime_ticks: ticks };
     (watcher.sub.on_next)(&fg_switch);
-}
-
-#[no_mangle]
-pub unsafe fn window_title(hwnd: windef::HWND) -> FfiString {
-    let len = winuser::GetWindowTextLengthW(hwnd);
-    let mut buf = vec![0u16; len as usize + 1];
-    winuser::GetWindowTextW(hwnd, buf.as_mut_ptr(), len + 1);
-    buf
 }
 
 #[no_mangle]
@@ -75,14 +65,4 @@ pub unsafe fn to_filetime_ticks(ticks: minwindef::DWORD) -> i64 {
     let millis_diff = ticks as i64 - sysinfoapi::GetTickCount64() as i64;
     let ticks = *(&mut ft as *mut _ as *mut i64);
     ticks + millis_diff * 10_000
-}
-
-#[no_mangle]
-pub unsafe fn event_loop(){
-    loop {
-        let mut msg: winuser::MSG = std::mem::zeroed();
-        if 0 == winuser::GetMessageW(&mut msg, ptr::null_mut(), 0,0) { break }
-        winuser::TranslateMessage(&mut msg);
-        winuser::DispatchMessageW(&mut msg);
-    }
 }

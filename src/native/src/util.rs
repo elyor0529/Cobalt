@@ -1,4 +1,4 @@
-type FfiString = Vec<u16>;
+pub type FfiString = Vec<u16>;
 
 pub struct Error {
     pub cause: FfiString
