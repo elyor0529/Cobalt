@@ -46,7 +46,7 @@ namespace Cobalt.Engine.Extractors
             if (ApplicationFrameHost.Equals(path, StringComparison.OrdinalIgnoreCase))
             {
                 // var nani = What.add();
-                var adfuffdsffdfdmi = What.uwp_aumid(handle.DangerousGetHandle()).ToString();
+                var adfuffdsfdffffddfgdfdmi = What.uwp_aumid(handle.DangerousGetHandle()).ToString();
 
                 var store = Shell32.SHGetPropertyStoreForWindow<PropSys.IPropertyStore>(handle);
                 var key = PropertyStore.GetPropertyKeyFromName("System.AppUserModel.ID");

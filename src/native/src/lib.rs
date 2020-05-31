@@ -6,3 +6,10 @@ extern crate lazy_static;
 mod util;
 mod info;
 mod watchers;
+
+use crate::util::*;
+
+#[no_mangle]
+pub unsafe fn add() -> FfiResult<u32> {
+    FfiResult::Err(Error { code: 05, cause: String::from("what") })
+}

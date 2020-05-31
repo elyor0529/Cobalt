@@ -24,11 +24,6 @@ pub struct ForegroundWindowSwitch {
 pub static mut FOREGROUND_WINDOW_WATCHER_INSTANCE: Option<ForegroundWindowWatcher> = None;
 
 #[no_mangle]
-pub unsafe fn add() -> FfiResult<u32> {
-    FfiResult::Err(Error { code: 05, cause: String::from("what") })
-}
-
-#[no_mangle]
 pub unsafe fn foreground_window_watcher_begin(sub: Subscription<ForegroundWindowSwitch>) {
     let hook = winuser::SetWinEventHook(
         winuser::EVENT_SYSTEM_FOREGROUND,

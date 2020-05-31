@@ -11,7 +11,7 @@ namespace Cobalt.Engine.Native
     public delegate void OnCompleted();
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    public delegate void OnError(uint err);
+    public delegate void OnError(Error err);
 
     [StructLayout(LayoutKind.Sequential)]
     public struct FfiString
@@ -31,6 +31,11 @@ namespace Cobalt.Engine.Native
     {
         public uint Code;
         public IntPtr Cause;
+
+        public Exception ToException()
+        {
+            return new Exception($"[{Code}]: {Marshal.PtrToStringUni(Cause)}");
+        }
     }
 
     // TODO doesn't work cuz generics don't work in PInvoke
@@ -115,9 +120,9 @@ namespace Cobalt.Engine.Native
             _observer.OnNext(*(T*)ptr);
         }
 
-        public void OnError(uint err)
+        public void OnError(Error err)
         {
-            _observer.OnError(new Exception(err.ToString()));
+            _observer.OnError(err.ToException());
         }
 
         public void OnCompleted()
@@ -174,9 +179,9 @@ namespace Cobalt.Engine.Native
             _observer.OnNext(*(T*)ptr);
         }
 
-        public void OnError(uint err)
+        public void OnError(Error err)
         {
-            _observer.OnError(new Exception(err.ToString()));
+            _observer.OnError(err.ToException());
         }
 
         public void OnCompleted()

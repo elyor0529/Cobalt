@@ -59,3 +59,27 @@ pub unsafe fn process_path_fast(id: u32) -> ffi::OsString {
     handleapi::CloseHandle(handle);
     buf
 }
+
+#[repr(C)]
+pub struct ProcessExit {
+    sub: Subscription<()>,
+    wait: *mut ctypes::c_void
+}
+
+#[no_mangle]
+pub unsafe extern "system" fn process_exit_handler(dat: *mut ctypes::c_void, _: u8) {
+    let process_exit = Box::from_raw(dat as *mut ProcessExit);
+    (process_exit.sub.on_next)(&());
+    (process_exit.sub.on_complete)();
+    winbase::UnregisterWait(process_exit.wait);
+}
+
+#[no_mangle]
+pub unsafe fn process_exit_begin(sub: Subscription<()>, proc: *mut ctypes::c_void) -> *mut ctypes::c_void {
+    let process_exit = Box::leak(Box::new(ProcessExit { sub, wait: mem::zeroed() }));
+    winbase::RegisterWaitForSingleObject(&mut process_exit.wait,
+        proc, Some(process_exit_handler),
+        process_exit as *mut _ as *mut ctypes::c_void,
+        winbase::INFINITE, winnt::WT_EXECUTEONLYONCE);
+    process_exit.wait
+}

@@ -4,8 +4,6 @@ use crate::util::*;
 use crate::info::process::*;
 use std::*;
 use std::collections::HashMap;
-use std::borrow::Borrow;
-use std::os::windows::prelude::*;
 
 pub struct Window {
     id: windef::HWND,
@@ -57,23 +55,53 @@ pub unsafe fn len_pwstr(str: *mut u16) -> usize {
 }
 
 #[repr(C)]
-pub struct WindowClosed<'a> {
-    sub: &'a Subscription<()>
+#[derive(Debug)]
+pub struct WindowClosed {
+    sub: Subscription<()>
 }
 
 lazy_static! {
-    static ref WINDOW_CLOSED_GLOBALS: sync::Mutex<HashMap<usize, WindowClosed<'static>>> = {
+    static ref WINDOW_CLOSED_GLOBALS: sync::Mutex<HashMap<Ptr<windef::HWND>, WindowClosed>> = {
         sync::Mutex::new(HashMap::new())
     };
 }
 
+unsafe extern "system" fn window_closed_handler(
+    win_event_hook: windef::HWINEVENTHOOK,
+    _event: minwindef::DWORD,
+    hwnd: windef::HWND,
+    id_object: winnt::LONG,
+    id_child: winnt::LONG,
+    _id_event_thread: minwindef::DWORD,
+    _dwms_event_time: minwindef::DWORD) {
+    if id_object != winuser::OBJID_WINDOW || id_child != 0 { return; }
+    let key = &Ptr(hwnd);
+
+    let mut lock = WINDOW_CLOSED_GLOBALS.lock().unwrap();
+    let closed = lock.get(key);
+    if let Some(c) = &closed {
+        (c.sub.on_next)(&());
+        (c.sub.on_complete)();
+        winuser::UnhookWinEvent(win_event_hook);
+        lock.remove(key);
+    }
+}
+
 #[no_mangle]
-pub unsafe fn window_closed_begin(sub: &'static Subscription<()>, win: windef::HWND) -> windef::HWND {
+pub unsafe fn window_closed_begin(sub: Subscription<()>, win: windef::HWND) -> windef::HWND {
     let mut globals = WINDOW_CLOSED_GLOBALS.lock().unwrap();
     let global = WindowClosed { sub };
-    globals.insert(0, global);
+    globals.insert(Ptr(win), global);
 
-    // winuser::SetWinEventHook(winuser::DE);
+    let mut pid = 0;
+    let tid = winuser::GetWindowThreadProcessId(win, &mut pid);
+    let _hook = winuser::SetWinEventHook(
+        winuser::EVENT_OBJECT_DESTROY,
+        winuser::EVENT_OBJECT_DESTROY,
+        ptr::null_mut(),
+        Some(window_closed_handler),
+        pid, tid,
+        winuser::WINEVENT_OUTOFCONTEXT);
 
     win
 }

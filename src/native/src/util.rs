@@ -1,13 +1,19 @@
 #[macro_use]
 pub type FfiString = Vec<u16>;
 
+#[derive(Ord, PartialOrd, Eq, PartialEq, Hash, Debug)]
+pub struct Ptr<T>(pub T);
+unsafe impl<T> Send for Ptr<T> {}
+
 #[repr(C, usize)]
+#[derive(Debug)]
 pub enum FfiResult<T> {
     Ok(T),
     Err(Error)
 }
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct Error {
     pub code: i32,
     pub cause: String
@@ -18,6 +24,11 @@ pub struct Subscription<T> {
     pub on_next: extern "cdecl" fn(&T),
     pub on_error: extern "cdecl" fn(Error),
     pub on_complete: extern "cdecl" fn(),
+}
+impl<T> std::fmt::Debug for Subscription<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Subscription").finish()
+    }
 }
 
 impl<T> FfiResult<T> {

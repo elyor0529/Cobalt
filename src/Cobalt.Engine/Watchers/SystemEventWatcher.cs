@@ -64,7 +64,7 @@ namespace Cobalt.Engine.Watchers
         {
             _mouseCallback = MouseCallback;
             _keyCallback = KeyCallback;
-            var currentMod = Kernel32.GetModuleHandle(Process.GetCurrentProcess().MainModule?.ModuleName);
+            var currentMod = Kernel32.GetModuleHandle(System.Diagnostics.Process.GetCurrentProcess().MainModule?.ModuleName);
             _keyHook = User32.SetWindowsHookEx(User32.HookType.WH_KEYBOARD_LL, _keyCallback, currentMod, 0);
             _mouseHook = User32.SetWindowsHookEx(User32.HookType.WH_MOUSE_LL, _mouseCallback, currentMod, 0);
             _idleTimer = new Timer(IdleCallback, null, _idleDuration, _idleDuration);

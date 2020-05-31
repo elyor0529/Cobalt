@@ -61,21 +61,21 @@ namespace Cobalt.Engine.Services
 
         private async Task Work(CancellationToken stoppingToken)
         {
-            var res = Native.What.add();
+            var grfffes = Native.What.add();
             using var usages = Window.ForegroundWatcher
                 // group by window, until the window closes
                 .GroupByUntil(
                     sw => _winInfo.Extract(sw.Window),
-                    win => _winInfo.Closed(win.Key))
+                    win => Window.Closed(win.Key.Handle.DangerousGetHandle()))
                 // group by process, until the process exits
                 .GroupByUntil(
                     win => _procInfo.Extract(win.Key),
-                    proc => _procInfo.Exited(proc.Key))
+                    proc => Process.Exited(proc.Key.Handle.DangerousGetHandle()))
                 // set the app for the process
                 .Do(async proc =>
                 {
                     await WithApp(proc.Key);
-                    _logger.LogDebug("Process {App} Opened", proc.Key.App);
+                    _logger.LogDebug("Process {App} Opened", proc.Key.App.Identification);
                 })
                 // flatten the groups back
                 .SelectMany(proc =>
@@ -84,20 +84,20 @@ namespace Cobalt.Engine.Services
                         .Do(async win =>
                         {
                             await WithSession(win.Key, proc.Key);
-                            _logger.LogDebug("Window {Session} Opened", win.Key.Session);
+                            _logger.LogDebug("Window {Session} Opened", win.Key.Session.Title);
                         })
                         // dispose of the process once the process exits
                         .Finally(() =>
                         {
                             _procInfo.Dispose(proc.Key);
-                            _logger.LogDebug("Process {App} Exited", proc.Key.App);
+                            _logger.LogDebug("Process {App} Exited", proc.Key.App.Identification);
                         })
                         .SelectMany(win =>
                             // dispose of the window once it closes
                             win.Finally(() =>
                                 {
                                     _winInfo.Dispose(win.Key);
-                                    _logger.LogDebug("Window {Session} Closed", win.Key.Session);
+                                    _logger.LogDebug("Window {Session} Closed", win.Key.Session.Title);
                                 })
                                 .Select(sw => new {sw.ActivatedTimestamp, Window = win.Key})))
                 // select every 2 switches
