@@ -8,6 +8,7 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
-winapi = { version = "0.3", features = ["winuser", "winbase", "memoryapi", "sysinfoapi", "processthreadsapi", "handleapi"] }
-chrono = "0.4"
+winapi = { version = "0.3", features = ["winuser", "winbase", "memoryapi", "sysinfoapi", "processthreadsapi", "handleapi", "shellapi", "propsys", "propkey"] }
 ntapi = "0.2"
+uuid-sys = "0.1"
+lazy_static = "1.0"

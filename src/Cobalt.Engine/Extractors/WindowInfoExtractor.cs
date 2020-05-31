@@ -3,8 +3,11 @@ using System.Reactive;
 using System.Reactive.Linq;
 using Cobalt.Common.Utils;
 using Cobalt.Engine.Infos;
+using Cobalt.Engine.Native;
 using Microsoft.Extensions.Logging;
 using Vanara.PInvoke;
+using Vanara.Windows.Shell;
+using BasicWindowInfo = Cobalt.Engine.Infos.BasicWindowInfo;
 
 namespace Cobalt.Engine.Extractors
 {
@@ -42,7 +45,14 @@ namespace Cobalt.Engine.Extractors
 
             if (ApplicationFrameHost.Equals(path, StringComparison.OrdinalIgnoreCase))
             {
-                _logger.LogDebug("Found UWP Window, extracting...");
+                // var nani = What.add();
+                var adfuffdsffdfdmi = What.uwp_aumid(handle.DangerousGetHandle()).ToString();
+
+                var store = Shell32.SHGetPropertyStoreForWindow<PropSys.IPropertyStore>(handle);
+                var key = PropertyStore.GetPropertyKeyFromName("System.AppUserModel.ID");
+                var value = store.GetValue(key) as string;
+
+                _logger.LogDebug("Found UWP Window, extracting..." + value);
                 var appWin = HWND.NULL;
                 while (appWin == HWND.NULL)
                     User32.EnumChildWindows(handle, (hdl, id) =>

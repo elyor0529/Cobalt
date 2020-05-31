@@ -27,7 +27,7 @@ namespace Cobalt.Engine.Native
     }
 
     [StructLayout(LayoutKind.Sequential)]
-    public unsafe struct Error
+    public struct Error
     {
         public uint Code;
         public IntPtr Cause;
@@ -35,7 +35,7 @@ namespace Cobalt.Engine.Native
 
     // TODO doesn't work cuz generics don't work in PInvoke
     [StructLayout(LayoutKind.Explicit)]
-    public unsafe struct FfiResult
+    public struct FfiResult
     {
         [FieldOffset(0)] public long Tag;
 
@@ -47,6 +47,9 @@ namespace Cobalt.Engine.Native
     {
         [DllImport(Constants.NativeLibrary)]
         public static extern FfiResult add();
+
+        [DllImport(Constants.NativeLibrary)]
+        public static extern FfiString uwp_aumid(IntPtr handle);
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -65,7 +68,7 @@ namespace Cobalt.Engine.Native
 
     public delegate void Drop(IntPtr ptr);
 
-    public class StaticWatcher<T> : IObservable<T> where T : struct
+    public class StaticWatcher<T> : IObservable<T> where T : unmanaged
     {
         private readonly StaticDrop _drop;
         private readonly StaticWatch _watch;
@@ -82,7 +85,7 @@ namespace Cobalt.Engine.Native
         }
     }
 
-    public unsafe class StaticWatcherSubscription<T> : IDisposable where T : struct
+    public unsafe class StaticWatcherSubscription<T> : IDisposable where T : unmanaged
     {
         private readonly StaticDrop _drop;
         private readonly IObserver<T> _observer;
@@ -109,7 +112,7 @@ namespace Cobalt.Engine.Native
 
         public void OnNext(void* ptr)
         {
-            _observer.OnNext(Unsafe.Read<T>(ptr));
+            _observer.OnNext(*(T*)ptr);
         }
 
         public void OnError(uint err)
@@ -123,7 +126,7 @@ namespace Cobalt.Engine.Native
         }
     }
 
-    public class Watcher<T> : IObservable<T> where T : struct
+    public class Watcher<T> : IObservable<T> where T : unmanaged
     {
         private readonly Drop _drop;
         private readonly Watch _watch;
@@ -140,7 +143,7 @@ namespace Cobalt.Engine.Native
         }
     }
 
-    public unsafe class WatcherSubscription<T> : IDisposable where T : struct
+    public unsafe class WatcherSubscription<T> : IDisposable where T : unmanaged
     {
         private readonly Drop _drop;
         private readonly IObserver<T> _observer;
@@ -168,7 +171,7 @@ namespace Cobalt.Engine.Native
 
         public void OnNext(void* ptr)
         {
-            _observer.OnNext(Unsafe.Read<T>(ptr));
+            _observer.OnNext(*(T*)ptr);
         }
 
         public void OnError(uint err)
