@@ -9,7 +9,7 @@ use std::collections::HashMap;
 pub struct Window {
     id: windef::HWND,
     title: FfiString,
-    uwp_aumid: Option<FfiString>
+    uwp_aumid: FfiString
 }
 
 #[no_mangle]
@@ -22,9 +22,9 @@ pub unsafe fn window_title(hwnd: windef::HWND) -> FfiString {
 }
 
 #[no_mangle]
-pub unsafe fn window_from_basic(basic: crate::watchers::foreground_window_watcher::BasicWindowInfo) -> Window {
+pub unsafe fn window_extended(basic: crate::watchers::foreground_window_watcher::BasicWindowInfo) -> Window {
     let uwp_aumid = uwp_aumid(basic.id);
-    Window { id: basic.id, title: basic.title, uwp_aumid }
+    Window { id: basic.id, title: basic.title, uwp_aumid: uwp_aumid.unwrap_or(FfiString::new()) }
 }
 
 #[no_mangle]

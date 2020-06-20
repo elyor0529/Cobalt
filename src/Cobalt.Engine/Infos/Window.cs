@@ -13,27 +13,43 @@ namespace Cobalt.Engine.Infos
                     Methods.foreground_window_watcher_begin,
                     Methods.foreground_window_watcher_end)
                 .Select(x => new ForegroundWindowSwitch(DateTime.FromFileTime(x.FileTimeTicks),
-                    new Window(x.Window.Handle, x.Window.Title.ToString())));
+                    new Window(x.Window)));
+
+        [DllImport(Constants.NativeLibrary)]
+        private static extern Extended window_extended(Basic basic);
+
         public static IObservable<Unit> ClosedWatcher(IntPtr handle) =>
             new Watcher<Unit>(sub => Methods.window_closed_begin(sub, handle), x => { });
 
-        private Window(IntPtr handle, string title)
+        private Window(Basic basic)
         {
-            Handle = handle;
-            Title = title;
+            _basic = basic;
+            _extended = new Lazy<Extended>(() => window_extended(basic));
         }
 
-        public IntPtr Handle { get; }
-        public string Title { get; }
-        public IObservable<Unit> Closed => ClosedWatcher(Handle);
+        private readonly Basic _basic;
+        private readonly Lazy<Extended> _extended;
 
+        public IntPtr Handle => _basic.Handle;
+        public string Title => _basic.Title.ToString();
+        public string UwpAumid => _extended.Value.UwpAumid.ToString();
+
+        public IObservable<Unit> Closed => ClosedWatcher(Handle);
         public Process Process => new Process(this);
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct Native
+        public struct Basic
         {
             public readonly IntPtr Handle;
             public readonly FfiString Title;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct Extended
+        {
+            public readonly IntPtr Handle;
+            public readonly FfiString Title;
+            public readonly FfiString UwpAumid;
         }
 
         public void Dispose()

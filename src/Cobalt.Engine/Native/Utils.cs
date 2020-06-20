@@ -22,7 +22,7 @@ namespace Cobalt.Engine.Native
 
         public override string ToString()
         {
-            return Marshal.PtrToStringUni(Pointer, Length.ToInt32());
+            return Length == IntPtr.Zero ? null : Marshal.PtrToStringUni(Pointer, Length.ToInt32());
         }
     }
 
@@ -46,6 +46,13 @@ namespace Cobalt.Engine.Native
 
         [FieldOffset(8)] public uint Ok;
         [FieldOffset(8)] public Error Error;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct FfiOption<T> where T: unmanaged
+    {
+        public long Tag;
+        public T Value;
     }
 
     public static class What

@@ -4,11 +4,11 @@ using System.Runtime.InteropServices;
 using Cobalt.Common.Data.Entities;
 using Cobalt.Engine.Native;
 using Serilog;
-using Serilog.Core;
-using Constants = Cobalt.Engine.Native.Constants;
 
 namespace Cobalt.Engine.Infos
 {
+    // TODO reorder all these so that they make more sense
+    // TODO shift native shit to another dll?
     public class Process : IDisposable
     {
         private static IObservable<Unit> ExitedWatcher(IntPtr handle) =>
@@ -18,6 +18,7 @@ namespace Cobalt.Engine.Infos
         {
             _basic = process_id_for_window(window.Handle);
             _extended = new Lazy<Extended>(() => process_information(Id));
+            UwpAumid = window.UwpAumid;
         }
 
         private Basic _basic;
@@ -29,6 +30,7 @@ namespace Cobalt.Engine.Infos
         public string CmdLine => _extended.Value.CmdLine.ToString();
         public string Name => _extended.Value.Name.ToString();
         public string Description => _extended.Value.Description.ToString();
+        public string UwpAumid { get; }
 
         public IObservable<Unit> Exited => ExitedWatcher(Handle);
 
@@ -63,8 +65,8 @@ namespace Cobalt.Engine.Infos
 
         public AppIdentification GetIdentification(Process proc)
         {
-            // TODO check aumid
-            return AppIdentification.NewWin32(Path);
+            // TODO check java?
+            return UwpAumid != null ? AppIdentification.NewUWP(UwpAumid) : AppIdentification.NewWin32(Path);
         }
     }
 }

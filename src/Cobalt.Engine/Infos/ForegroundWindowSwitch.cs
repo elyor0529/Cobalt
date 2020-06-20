@@ -18,7 +18,7 @@ namespace Cobalt.Engine.Infos
         [StructLayout(LayoutKind.Sequential)]
         public struct Native
         {
-            public readonly Window.Native Window;
+            public readonly Window.Basic Window;
             public readonly long FileTimeTicks;
         }
     }
