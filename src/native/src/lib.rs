@@ -1,3 +1,4 @@
+#![feature(option_zip)]
 #![feature(try_trait)]
 #![feature(osstring_ascii)]
 #[macro_use]

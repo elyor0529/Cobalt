@@ -5,6 +5,7 @@ use crate::info::process::*;
 use std::*;
 use std::collections::HashMap;
 
+#[repr(C)]
 pub struct Window {
     id: windef::HWND,
     title: FfiString,
@@ -29,22 +30,21 @@ pub unsafe fn window_from_basic(basic: crate::watchers::foreground_window_watche
 pub unsafe fn uwp_aumid(win: windef::HWND) -> Option<FfiString> {
     let pid = process_id_for_window(win);
     let path = process_path_fast(pid);
-    if path.eq_ignore_ascii_case("C:\\Windows\\System32\\ApplicationFrameHost.exe") {
-        // get aumid
-        let mut property_store: *mut winapi::um::propsys::IPropertyStore = ptr::null_mut();
-        let property_store_guid = uuid::IID_IPropertyStore;
-        let res = shellapi::SHGetPropertyStoreForWindow(win,
-            &property_store_guid as *const _ as *const _,
-            &mut property_store as *mut _ as *mut *mut winapi::ctypes::c_void);
+    if !path.eq_ignore_ascii_case("C:\\Windows\\System32\\ApplicationFrameHost.exe") { return None }
 
-        let mut prop: propidl::PROPVARIANT = mem::zeroed();
-        (*property_store).GetValue(&propkey::PKEY_AppUserModel_ID as *const _, &mut prop);
+    // get aumid
+    let mut property_store: *mut winapi::um::propsys::IPropertyStore = ptr::null_mut();
+    let property_store_guid = uuid::IID_IPropertyStore;
+    let res = shellapi::SHGetPropertyStoreForWindow(win,
+        &property_store_guid as *const _ as *const _,
+        &mut property_store as *mut _ as *mut *mut winapi::ctypes::c_void);
 
-        let aumid_ptr = *prop.data.pwszVal();
-        let aumid_len = len_pwstr(aumid_ptr);
-        Some(Vec::from_raw_parts(aumid_ptr, aumid_len, aumid_len))
-    }
-    else { None }
+    let mut prop: propidl::PROPVARIANT = mem::zeroed();
+    (*property_store).GetValue(&propkey::PKEY_AppUserModel_ID as *const _, &mut prop);
+
+    let aumid_ptr = *prop.data.pwszVal();
+    let aumid_len = len_pwstr(aumid_ptr);
+    Some(Vec::from_raw_parts(aumid_ptr, aumid_len, aumid_len))
 }
 
 pub unsafe fn len_pwstr(str: *mut u16) -> usize {

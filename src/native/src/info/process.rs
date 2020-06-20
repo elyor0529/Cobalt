@@ -5,13 +5,16 @@ use winapi::*;
 use ntapi::*;
 use std::*;
 use std::os::windows::prelude::*;
+use pelite::*;
 
 #[repr(C)]
 pub struct Process {
     id: u32,
     handle: *mut ctypes::c_void,
     path: FfiString,
-    cmd_line: FfiString // TODO change all FfiString to OsString
+    cmd_line: FfiString, // TODO change all FfiString to OsString
+    name: FfiString,
+    description: FfiString
 }
 
 #[no_mangle]
@@ -38,7 +41,39 @@ pub unsafe fn process_information(id: u32) -> Process {
     let path = read_unicode_string!(handle, user_params.ImagePathName);
     let cmd_line = read_unicode_string!(handle, user_params.CommandLine);
 
-    Process { id, handle, path, cmd_line }
+    let file_map = FileMap::open(&path::Path::new(&ffi::OsString::from_wide(&path[..])))
+        .expect("cannot open the file specified");
+    let image = PeFile::from_bytes(file_map.as_ref())
+	.expect("file is not a PE image");
+    let resources = image.resources().expect("resources not found");
+    let version_info = resources.version_info().expect("version info not found");
+    let default_lang = version_info.translation()[0];
+
+    let (name, description) = iter::once(default_lang).chain(FALLBACK_LANGS.iter().map(|x| lang(x)))
+        .find_map(|lang| get_file_details(version_info, lang))
+        .expect("Name and description not found in any language");
+    Process { id, handle, path, cmd_line, name, description }
+}
+
+pub static FALLBACK_LANGS: &[&str] = &[
+    "040904B0", // US English + CP_UNICODE
+    "040904E4", // US English + CP_USASCII
+    "04090000"  // US English + unknown codepage
+];
+
+fn get_file_details(version_info: resources::version_info::VersionInfo, lang: resources::version_info::Language) -> Option<(FfiString, FfiString)> {
+    let name = version_info.value(lang, "ProductName").map(to_ffi_string);
+    let desc = version_info.value(lang, "FileDescription").map(to_ffi_string);
+    name.zip(desc)
+}
+
+fn to_ffi_string(s: String) -> FfiString {
+    ffi::OsStr::new(s.as_str()).encode_wide().chain(iter::once(0)).collect()
+}
+
+fn lang(s: &'static str) -> resources::version_info::Language {
+    let buf = ffi::OsStr::new(s).encode_wide().chain(iter::once(0)).collect::<Vec<u16>>();
+    resources::version_info::Language::parse(&buf[..]).expect("Cannot parse language")
 }
 
 #[no_mangle]

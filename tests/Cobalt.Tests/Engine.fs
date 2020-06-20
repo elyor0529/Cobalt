@@ -12,6 +12,7 @@ open System.Diagnostics
 open System.Reactive.Linq
 open System.Runtime.InteropServices
 open System.Runtime.CompilerServices
+open Cobalt.Engine.Infos
 
 [<Fact>]
 let ``switching foreground with two apps`` () =
