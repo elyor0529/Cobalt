@@ -15,8 +15,9 @@ pub struct Window {
 #[no_mangle]
 pub unsafe fn window_title(hwnd: windef::HWND) -> FfiString {
     let len = winuser::GetWindowTextLengthW(hwnd);
-    let mut buf = vec![0u16; len as usize + 1];
-    winuser::GetWindowTextW(hwnd, buf.as_mut_ptr(), len + 1);
+    let mut buf = vec![0u16; len as usize+1];
+    winuser::GetWindowTextW(hwnd, buf.as_mut_ptr(), len+1);
+    buf.set_len(len as usize); // Do not include the u16 null byte at the end
     buf
 }
 

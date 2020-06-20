@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,6 +11,7 @@ using Cobalt.Engine.Native;
 using Cobalt.Engine.Watchers;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.FSharp.Core;
 
 namespace Cobalt.Engine.Services
 {
@@ -29,14 +31,28 @@ namespace Cobalt.Engine.Services
             _repo = repo;
         }
 
-        private App AppForProcess(Process proc)
+        private App FindOrCreateApp(Process proc)
         {
-            return null;
+            var id = proc.GetIdentification(proc);
+            var app = _repo.FindAppByIdentification(id);
+
+            return ValueOption.ToObj(app) ?? _repo.Insert(new App
+            {
+                Identification = id,
+                Background = "#FEFEFE", // TODO
+                Icon = new MemoryStream(), // TODO
+                Name = "" // TODO
+            });
         }
 
-        private Session SessionForWindow(Window argKey, App app)
+        private Session CreateSession(Window win, Process process, App app)
         {
-            return null;
+            return _repo.Insert(new Session
+            {
+                App = app,
+                Title = win.Title,
+                CmdLine = process.CmdLine
+            });
         }
 
         private async Task Work(CancellationToken stoppingToken)
@@ -55,14 +71,14 @@ namespace Cobalt.Engine.Services
                 .SelectMany(windowsPerProcess =>
                 {
                     var process = windowsPerProcess.Key;
-                    var app = AppForProcess(process);
+                    var app = FindOrCreateApp(process);
                     return windowsPerProcess
                         // dispose of the process once the process exits
                         .Finally(() => process.Dispose())
                         .SelectMany(switchesPerWindow =>
                         {
                             var window = switchesPerWindow.Key;
-                            var session = SessionForWindow(window, app);
+                            var session = CreateSession(window, process, app);
                             return switchesPerWindow
                                 // dispose of the window once it closes
                                 .Finally(() => window.Dispose())

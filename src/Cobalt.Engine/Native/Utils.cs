@@ -22,7 +22,7 @@ namespace Cobalt.Engine.Native
 
         public override string ToString()
         {
-            return Marshal.PtrToStringUni(Pointer, Length.ToInt32() - 1);
+            return Marshal.PtrToStringUni(Pointer, Length.ToInt32());
         }
     }
 

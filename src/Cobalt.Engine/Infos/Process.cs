@@ -1,7 +1,11 @@
 ﻿using System;
 using System.Reactive;
 using System.Runtime.InteropServices;
+using Cobalt.Common.Data.Entities;
 using Cobalt.Engine.Native;
+using Serilog;
+using Serilog.Core;
+using Constants = Cobalt.Engine.Native.Constants;
 
 namespace Cobalt.Engine.Infos
 {
@@ -10,17 +14,9 @@ namespace Cobalt.Engine.Infos
         private static IObservable<Unit> ExitedWatcher(IntPtr handle) =>
             new Watcher<Unit>(x => Methods.process_exit_begin(x, handle), x => { });
 
-        public Process(uint id) : this(new Basic { Id = id })
+        public Process(Window window)
         {
-        }
-
-        internal Process(Window window) : this(process_id_for_window(window.Handle))
-        {
-        }
-
-        private Process(Basic basic)
-        {
-            _basic = basic;
+            _basic = process_id_for_window(window.Handle);
             _extended = new Lazy<Extended>(() => process_information(Id));
         }
 
@@ -44,6 +40,7 @@ namespace Cobalt.Engine.Infos
 
         public void Dispose()
         {
+            Log.Information("Process Exited!");
             // TODO dispose here
         }
 
@@ -62,6 +59,12 @@ namespace Cobalt.Engine.Infos
         public struct Basic
         {
             public uint Id;
+        }
+
+        public AppIdentification GetIdentification(Process proc)
+        {
+            // TODO check aumid
+            return AppIdentification.NewWin32(Path);
         }
     }
 }
