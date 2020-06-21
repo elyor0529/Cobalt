@@ -6,7 +6,7 @@ using Cobalt.Engine.Native;
 
 namespace Cobalt.Engine.Infos
 {
-    public class Window : IDisposable
+    public class Window : IDisposable, IEquatable<Window>
     {
         public static readonly IObservable<ForegroundWindowSwitch> ForegroundWatcher =
             new StaticWatcher<ForegroundWindowSwitch.Native>(
@@ -54,6 +54,34 @@ namespace Cobalt.Engine.Infos
 
         public void Dispose()
         {
+        }
+
+        public bool Equals(Window other)
+        {
+            if (other is null) return false;
+            return ReferenceEquals(this, other) || _basic.Equals(other._basic);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is null) return false;
+            if (ReferenceEquals(this, obj)) return true;
+            return obj.GetType() == GetType() && Equals((Window) obj);
+        }
+
+        public override int GetHashCode()
+        {
+            return _basic.GetHashCode();
+        }
+
+        public static bool operator ==(Window left, Window right)
+        {
+            return Equals(left, right);
+        }
+
+        public static bool operator !=(Window left, Window right)
+        {
+            return !Equals(left, right);
         }
     }
 }

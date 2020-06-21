@@ -86,7 +86,7 @@ namespace Cobalt.Engine.Services
                         });
                 })
                 // select every 2 switches
-                .Buffer(2, 1)
+                .Buffer(2, 1) // maybe optimize this to return tuple
                 // and convert them to a usage
                 .Select(sws =>
                 {
