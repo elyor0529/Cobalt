@@ -29,21 +29,4 @@
     <ProjectReference Include="..\Cobalt.Common.Utils\Cobalt.Common.Utils.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ContentWithTargetPath Include="../native/target/$(Configuration)/native.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <TargetPath>native.dll</TargetPath>
-    </ContentWithTargetPath>
-  </ItemGroup>
-
-  <Target Name="BuildNative" BeforeTargets="BeforeBuild" Condition="'$(Configuration)'!='Release'">
-    <Exec Command="cargo build --manifest-path=../native/Cargo.toml" ConsoleToMSBuild="true"></Exec>
-    <Message Text=" Native Dependency Built ($(Configuration))" Importance="high" />
-  </Target>
-
-  <Target Name="BuildNativeRelease" BeforeTargets="BeforeBuild" Condition="'$(Configuration)'=='Release'">
-    <Exec Command="cargo build --manifest-path=../native/Cargo.toml --release" ConsoleToMSBuild="true"></Exec>
-    <Message Text=" Native Dependency Built ($(Configuration))" Importance="high" />
-  </Target>
-
 </Project>
