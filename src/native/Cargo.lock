@@ -10,6 +10,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "casey"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d231a40f6ac78c0b10257aa4be07708d323632eb9acd65911498892916e65bdf"
+
+[[package]]
 name = "engine"
 version = "0.1.0"
 dependencies = [
@@ -50,8 +56,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "proc-macro2"
+version = "1.0.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "beae6331a816b1f65d04c45b078fd8e6c93e8071771f41b8163255bbd8d7c8fa"
+dependencies = [
+ "unicode-xid",
+]
+
+[[package]]
 name = "proc_macros"
 version = "0.1.0"
+dependencies = [
+ "casey",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "quote"
+version = "1.0.7"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa563d17ecb180e500da1cfd2b028310ac758de548efdd203e18f283af693f37"
+dependencies = [
+ "proc-macro2",
+]
 
 [[package]]
 name = "regex"
@@ -72,6 +101,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "26412eb97c6b088a6997e05f69403a802a92d520de2f8e63c2b65f9e0f47c4e8"
 
 [[package]]
+name = "syn"
+version = "1.0.32"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a994520748611c17d163e81b6c4a4b13d11b7f63884362ab2efac3aa9cf16d00"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "unicode-xid",
+]
+
+[[package]]
 name = "thread_local"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -79,6 +119,12 @@ checksum = "d40c6d1b69745a6ec6fb1ca717914848da4b44ae29d9b3080cbee91d72a69b14"
 dependencies = [
  "lazy_static",
 ]
+
+[[package]]
+name = "unicode-xid"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "826e7639553986605ec5979c7dd957c7895e93eabed50ab2ffa7f6128a75097c"
 
 [[package]]
 name = "uuid-sys"

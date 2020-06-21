@@ -8,7 +8,6 @@ pub trait SingleInstanceWatcher<'a, T> {
     fn subscription(&self) -> &ffi_ext::Subscription<T>;
 }
 
-#[watcher]
 pub struct ForegroundWindowWatcher<'a> {
     pub hook: windef::HWINEVENTHOOK,
     pub sub: &'a ffi_ext::Subscription<u32>
