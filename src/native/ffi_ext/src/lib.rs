@@ -1,5 +1,7 @@
 use std::*;
 
+pub mod win32;
+
 pub use widestring::WideString as String;
 
 #[repr(C)]
@@ -52,18 +54,21 @@ pub struct Subscription<T> {
     pub on_complete: Ptr<extern "cdecl" fn(&())>,
 }
 
+#[macro_export]
 macro_rules! next {
     ($sub: expr, $e: expr) => {
         $sub.on_next.call($e);
     };
 }
 
+#[macro_export]
 macro_rules! err {
     ($sub: expr, $s: expr) => {
-        $sub.on_error.call(&ffiext::Error::Custom(ffiext::String::from_str($s)));
+        $sub.on_error.call(&ffi_ext::Error::Custom(ffi_ext::String::from_str($s)));
     };
 }
 
+#[macro_export]
 macro_rules! completed {
     ($sub: expr) => {
         $sub.on_complete.call(&());

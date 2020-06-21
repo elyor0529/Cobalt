@@ -1,13 +1,12 @@
-use crate::*;
 use std::*;
 
 #[repr(C)]
 pub struct Basic {
     id: u32,
-    title: ffiext::String
+    title: ffi_ext::String
 }
 
 #[repr(C)]
 pub struct Extended {
-    uwp_aumid: ffiext::Nullable<ffiext::String>
+    uwp_aumid: ffi_ext::Nullable<ffi_ext::String>
 }

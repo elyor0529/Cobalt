@@ -1,18 +1,7 @@
-[package]
-name = "native"
-version = "0.1.0"
-authors = ["Enigmatrix <enigmatrix2000@gmail.com>"]
-edition = "2018"
+[workspace]
 
-[lib]
-crate-type = ["cdylib"]
-
-[dependencies]
-winapi = { version = "0.3", features = ["winuser", "winbase", "memoryapi", "sysinfoapi", "processthreadsapi", "handleapi", "shellapi", "propsys", "propkey", "threadpoollegacyapiset"] }
-pelite = "0.8"
-ntapi = "0.2"
-uuid-sys = "0.1"
-widestring = "0.4.2"
-regex = "1"
-lazy_static = "1.0"
-casey = "0.2"
+members = [
+    "ffi_ext",
+    "engine",
+    "proc_macros",
+]

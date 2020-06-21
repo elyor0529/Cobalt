@@ -1,31 +1,26 @@
-use crate::*;
-use win32::*;
-use casey::{snake};
+use proc_macros::*;
+use ffi_ext::win32::*;
+use std::*;
 
 pub trait SingleInstanceWatcher<'a, T> {
-    fn begin(sub: &'a ffiext::Subscription<u32>) -> Self;
+    fn begin(sub: &'a ffi_ext::Subscription<u32>) -> Self;
     fn end(self); 
-    fn subscription(&self) -> &ffiext::Subscription<T>;
+    fn subscription(&self) -> &ffi_ext::Subscription<T>;
 }
 
-// nope need proc_macros for this
-macro_rules! watcher {
-    (single $t:ident) => [
-        pub static mut concat_idents!($t,_INSTANCE): Option<$t> = None;
-    ];
-}
-
+#[watcher]
 pub struct ForegroundWindowWatcher<'a> {
     pub hook: windef::HWINEVENTHOOK,
-    pub sub: &'a ffiext::Subscription<u32>
+    pub sub: &'a ffi_ext::Subscription<u32>
 }
 
+#[watcher]
 impl<'a> SingleInstanceWatcher<'a, u32> for ForegroundWindowWatcher<'a> {
 
     #[inline(always)]
-    fn subscription(&self) -> &ffiext::Subscription<u32> { self.sub }
+    fn subscription(&self) -> &ffi_ext::Subscription<u32> { self.sub }
 
-    fn begin(sub: &'a ffiext::Subscription<u32>) -> Self {
+    fn begin(sub: &'a ffi_ext::Subscription<u32>) -> Self {
         let hook = unsafe {
             winuser::SetWinEventHook(
                 winuser::EVENT_SYSTEM_FOREGROUND,
@@ -51,7 +46,7 @@ unsafe extern "system" fn foreground_window_watcher_handler(
     _id_event_thread: minwindef::DWORD,
     dwms_event_time: minwindef::DWORD) {
     let sub = FOREGROUND_WINDOW_WATCHER_INSTANCE.as_ref().expect("FOREGROUND_WINDOW_WATCHER_INSTANCE should be already initialized").subscription();
-    err!(sub, "lol wat");
+    ffi_ext::err!(sub, format!("lol wat {}", 1).as_str());
     
 }
 
@@ -60,7 +55,7 @@ pub static mut FOREGROUND_WINDOW_WATCHER_INSTANCE: Option<ForegroundWindowWatche
 // TODO these need to return Results
 
 #[no_mangle]
-pub unsafe fn foreground_window_watcher_begin(sub: &'static ffiext::Subscription<u32>) {
+pub unsafe fn foreground_window_watcher_begin(sub: &'static ffi_ext::Subscription<u32>) {
     FOREGROUND_WINDOW_WATCHER_INSTANCE = Some(ForegroundWindowWatcher::begin(sub));
 }
 
@@ -68,3 +63,4 @@ pub unsafe fn foreground_window_watcher_begin(sub: &'static ffiext::Subscription
 pub unsafe fn foreground_window_watcher_end() {
     FOREGROUND_WINDOW_WATCHER_INSTANCE.take().unwrap().end();
 }
+
