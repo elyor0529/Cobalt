@@ -1,25 +1,35 @@
 use proc_macros::*;
 use ffi_ext::win32::*;
 use std::*;
+use crate::*;
 
 pub trait SingleInstanceWatcher<'a, T> {
-    fn begin(sub: &'a ffi_ext::Subscription<u32>) -> Self;
+    fn begin(sub: &'a ffi_ext::Subscription<T>) -> Self;
     fn end(self); 
     fn subscription(&self) -> &ffi_ext::Subscription<T>;
 }
 
-pub struct ForegroundWindowWatcher<'a> {
-    pub hook: windef::HWINEVENTHOOK,
-    pub sub: &'a ffi_ext::Subscription<u32>
+pub trait Watcher<'a, T> {
 }
 
-#[watcher]
-impl<'a> SingleInstanceWatcher<'a, u32> for ForegroundWindowWatcher<'a> {
+#[repr(C)]
+pub struct ForegroundWindowSwitch {
+    pub win: window::Basic,
+    pub filetime_ticks: i64
+}
+
+pub struct ForegroundWindowWatcher<'a> {
+    pub hook: windef::HWINEVENTHOOK,
+    pub sub: &'a ffi_ext::Subscription<ForegroundWindowSwitch>
+}
+
+#[watcher_impl]
+impl<'a> SingleInstanceWatcher<'a, ForegroundWindowSwitch> for ForegroundWindowWatcher<'a> {
 
     #[inline(always)]
-    fn subscription(&self) -> &ffi_ext::Subscription<u32> { self.sub }
+    fn subscription(&self) -> &ffi_ext::Subscription<ForegroundWindowSwitch> { self.sub }
 
-    fn begin(sub: &'a ffi_ext::Subscription<u32>) -> Self {
+    fn begin(sub: &'a ffi_ext::Subscription<ForegroundWindowSwitch>) -> Self {
         let hook = unsafe {
             winuser::SetWinEventHook(
                 winuser::EVENT_SYSTEM_FOREGROUND,
@@ -44,22 +54,23 @@ unsafe extern "system" fn foreground_window_watcher_handler(
     _id_child: winnt::LONG,
     _id_event_thread: minwindef::DWORD,
     dwms_event_time: minwindef::DWORD) {
-    let sub = FOREGROUND_WINDOW_WATCHER_INSTANCE.as_ref().expect("FOREGROUND_WINDOW_WATCHER_INSTANCE should be already initialized").subscription();
-    ffi_ext::err!(sub, format!("lol wat {}", 1).as_str());
-    
+    let sub  = instance!(ForegroundWindowWatcher).subscription();
+    if winuser::IsWindow(hwnd) == 0 || winuser::IsWindowVisible(hwnd) == 0 { return; }
+
+    /*let title = window::title(hwnd);
+    let ticks = to_filetime_ticks(dwms_event_time);
+    let win = window::Basic { id: hwnd, title  };
+    let fg_switch = ForegroundWindowSwitch { win, filetime_ticks: ticks };
+    ffi_ext::next!(sub, &fg_switch);*/
 }
 
-pub static mut FOREGROUND_WINDOW_WATCHER_INSTANCE: Option<ForegroundWindowWatcher> = None;
-
-// TODO these need to return Results
-
-#[no_mangle]
-pub unsafe fn foreground_window_watcher_begin(sub: &'static ffi_ext::Subscription<u32>) {
-    FOREGROUND_WINDOW_WATCHER_INSTANCE = Some(ForegroundWindowWatcher::begin(sub));
+#[no_mangle] // TODO move this to win32
+pub unsafe fn to_filetime_ticks(ticks: minwindef::DWORD) -> i64 {
+    let mut ft: minwindef::FILETIME = mem::zeroed();
+    sysinfoapi::GetSystemTimePreciseAsFileTime(&mut ft);
+    let millis_diff = ticks as i64 - sysinfoapi::GetTickCount64() as i64;
+    let ticks = *(&mut ft as *mut _ as *mut i64);
+    ticks + millis_diff * 10_000
 }
 
-#[no_mangle]
-pub unsafe fn foreground_window_watcher_end() {
-    FOREGROUND_WINDOW_WATCHER_INSTANCE.take().unwrap().end();
-}
 

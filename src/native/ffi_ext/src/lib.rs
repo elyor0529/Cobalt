@@ -3,6 +3,7 @@ use std::*;
 pub mod win32;
 
 pub use widestring::WideString as String;
+pub use widestring::WideStr as Str;
 
 #[repr(C)]
 #[derive(Ord, PartialOrd, Eq, PartialEq, Hash)]
