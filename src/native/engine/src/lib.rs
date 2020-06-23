@@ -1,8 +1,12 @@
+#![feature(option_expect_none)]
 #![feature(option_zip)]
 #![feature(trivial_bounds)]
 #![feature(try_trait)]
 #![feature(osstring_ascii)]
 #![feature(proc_macro_hygiene)]
+
+#[macro_use]
+extern crate lazy_static;
 
 mod window;
 mod watchers;

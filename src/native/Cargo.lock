@@ -33,6 +33,7 @@ name = "engine"
 version = "0.1.0"
 dependencies = [
  "ffi_ext",
+ "lazy_static 1.4.0",
  "proc_macros",
 ]
 

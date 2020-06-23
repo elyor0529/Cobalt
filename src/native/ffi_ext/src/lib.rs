@@ -10,6 +10,7 @@ pub use widestring::WideStr as Str;
 pub struct Ptr<T>(pub T);
 
 unsafe impl<T> Send for Ptr<T> {}
+unsafe impl<T> Sync for Ptr<T> {}
 
 impl<T> Ptr<extern "cdecl" fn(&T)> {
     #[inline(always)]

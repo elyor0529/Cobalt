@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 ffi_ext = { path = "../ffi_ext" }
 proc_macros = { path = "../proc_macros" }
+lazy_static = "1.4.0"
