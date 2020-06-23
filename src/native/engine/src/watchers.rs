@@ -3,13 +3,16 @@ use ffi_ext::win32::*;
 use std::*;
 use crate::*;
 
-pub trait SingleInstanceWatcher<'a, T> {
+pub trait SingletonWatcher<'a, T> {
     fn begin(sub: &'a ffi_ext::Subscription<T>) -> Self;
     fn end(self); 
-    fn subscription(&self) -> &ffi_ext::Subscription<T>;
+    fn subscription(&self) -> &'a ffi_ext::Subscription<T>;
 }
 
 pub trait Watcher<'a, T> {
+    fn begin(&mut self);
+    fn end(self);
+    fn subscription(&self) -> &'a ffi_ext::Subscription<T>;
 }
 
 #[repr(C)]
@@ -24,10 +27,10 @@ pub struct ForegroundWindowWatcher<'a> {
 }
 
 #[watcher_impl]
-impl<'a> SingleInstanceWatcher<'a, ForegroundWindowSwitch> for ForegroundWindowWatcher<'a> {
+impl<'a> SingletonWatcher<'a, ForegroundWindowSwitch> for ForegroundWindowWatcher<'a> {
 
     #[inline(always)]
-    fn subscription(&self) -> &ffi_ext::Subscription<ForegroundWindowSwitch> { self.sub }
+    fn subscription(&self) -> &'a ffi_ext::Subscription<ForegroundWindowSwitch> { self.sub }
 
     fn begin(sub: &'a ffi_ext::Subscription<ForegroundWindowSwitch>) -> Self {
         let hook = unsafe {
