@@ -43,10 +43,12 @@ pub fn watcher_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
         },
         "TransientWatcher" => {
             let arg_type = type_param(trait_args, 0);
+            let globals = syn::Ident::new(format!("{}_GLOBALS", target_shouty).as_str(), target_ident.span());
 
             quote! {
+
                 lazy_static! {
-                    static ref WINDOW_CLOSED_GLOBALS: sync::Mutex<std::collections::HashMap<ffi_ext::Ptr<windef::HWND>, WindowClosed>> = {
+                    static ref #globals: sync::Mutex<std::collections::HashMap<#arg_type, #target_ident<'static>>> = {
                         sync::Mutex::new(std::collections::HashMap::new())
                     };
                 }
@@ -97,7 +99,7 @@ fn get_path(path: &syn::Path) -> Option<&syn::PathSegment> {
 }
 
 #[proc_macro]
-pub fn instance(item: TokenStream) -> TokenStream {
+pub fn singleton_instance(item: TokenStream) -> TokenStream {
     let self_ty: syn::Type = syn::parse(item).unwrap();
     let self_ty = match &self_ty {
         syn::Type::Path(p) => &p.path.segments.last().unwrap().ident,
@@ -110,6 +112,25 @@ pub fn instance(item: TokenStream) -> TokenStream {
     let instance = syn::Ident::new(format!("{}_INSTANCE", target_type_screamingsnake_case).as_str(), self_ty.span());
     let instance_not_found_err = (quote! { #instance should be already initialized }).to_string();
     let expanded = quote! { #instance.as_ref().expect(#instance_not_found_err) };
+
+    expanded.into()
+}
+
+#[proc_macro]
+pub fn transient_globals(item: TokenStream) -> TokenStream {
+    let self_ty: syn::Type = syn::parse(item).unwrap();
+    let self_ty = match &self_ty {
+        syn::Type::Path(p) => &p.path.segments.last().unwrap().ident,
+        _ => return TokenStream::new()
+    };
+
+    let target_type = self_ty.to_string();
+    let target_shouty = target_type.to_screaming_snake_case();
+    let globals = syn::Ident::new(format!("{}_GLOBALS", target_shouty).as_str(), self_ty.span());
+
+    let expanded = quote! {
+        #globals.lock().unwrap()
+    };
 
     expanded.into()
 }

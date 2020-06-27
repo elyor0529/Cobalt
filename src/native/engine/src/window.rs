@@ -60,7 +60,7 @@ unsafe extern "system" fn foreground_window_watcher_handler(
     _id_child: winnt::LONG,
     _id_event_thread: minwindef::DWORD,
     dwms_event_time: minwindef::DWORD) {
-    let ForegroundWindowWatcher { sub, .. } = instance!(ForegroundWindowWatcher);
+    let ForegroundWindowWatcher { sub, .. } = singleton_instance!(ForegroundWindowWatcher);
     if winuser::IsWindow(hwnd) == 0 || winuser::IsWindowVisible(hwnd) == 0 { return; }
 
     let title = window::title(hwnd);
@@ -71,19 +71,15 @@ unsafe extern "system" fn foreground_window_watcher_handler(
 }
 
 #[repr(C)]
-#[derive(Debug)]
 pub struct WindowClosed<'a> {
-    pub hwnd: windef::HWND,
-    pub hook: windef::HWINEVENTHOOK,
+    pub hwnd: ffi_ext::Ptr<windef::HWND>,
+    pub hook: ffi_ext::Ptr<windef::HWINEVENTHOOK>,
     pub sub: &'a ffi_ext::Subscription<()>,
 }
 
 #[watcher_impl]
 impl<'a> TransientWatcher<'a, ffi_ext::Ptr<windef::HWND>, ()> for WindowClosed<'a> {
     fn begin(win: ffi_ext::Ptr<windef::HWND>, sub: &'a ffi_ext::Subscription<()>) -> Self {
-
-        // TODO init hashmap
-
         let mut pid = 0;
         let tid = unsafe { winuser::GetWindowThreadProcessId(win.0, &mut pid) };
         let hook = unsafe { winuser::SetWinEventHook(
@@ -93,12 +89,12 @@ impl<'a> TransientWatcher<'a, ffi_ext::Ptr<windef::HWND>, ()> for WindowClosed<'
             Some(window_closed_handler),
             pid, tid,
             winuser::WINEVENT_OUTOFCONTEXT) };
-        WindowClosed { hwnd: win.0, sub, hook }
+        WindowClosed { hwnd: win, sub, hook: ffi_ext::Ptr(hook) }
     }
 
     fn end(self) {
         completed!(self.sub);
-        unsafe { winuser::UnhookWinEvent(self.hook); }
+        unsafe { winuser::UnhookWinEvent(self.hook.0); }
     }
 }
 
@@ -111,17 +107,16 @@ unsafe extern "system" fn window_closed_handler(
     _id_event_thread: minwindef::DWORD,
     _dwms_event_time: minwindef::DWORD) {
     if id_object != winuser::OBJID_WINDOW || id_child != 0 { return; }
-
+    let mut globals = transient_globals!(WindowClosed);
+    let key = &ffi_ext::Ptr(hwnd);
+    let closed = globals.get(key);
+    if let Some(c) = &closed {
+        next!(c.sub, &());
+        completed!(c.sub);
+        winuser::UnhookWinEvent(c.hook.0);
+        globals.remove(key);
+    }
 }
-
-/*
-lazy_static! {
-    static ref WINDOW_CLOSED_GLOBALS: sync::Mutex<HashMap<Ptr<windef::HWND>, WindowClosed>> = {
-        sync::Mutex::new(HashMap::new())
-    };
-}
-*/
-
 
 #[no_mangle]
 pub unsafe fn title(hwnd: windef::HWND) -> ffi_ext::String {
