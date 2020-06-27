@@ -4,6 +4,7 @@ pub use winapi::shared::*;
 pub use ntapi::*;
 
 pub mod wintypes {
+    pub use winapi::ctypes::*;
     pub use winapi::shared::windef::*;
     pub use winapi::shared::minwindef::*;
     pub use winapi::um::winnt::*;

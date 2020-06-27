@@ -10,3 +10,4 @@ edition = "2018"
 ffi_ext = { path = "../ffi_ext" }
 proc_macros = { path = "../proc_macros" }
 lazy_static = "1.4.0"
+uuid-sys = "0.1"

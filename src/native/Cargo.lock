@@ -35,6 +35,7 @@ dependencies = [
  "ffi_ext",
  "lazy_static 1.4.0",
  "proc_macros",
+ "uuid-sys",
 ]
 
 [[package]]
@@ -43,7 +44,6 @@ version = "0.1.0"
 dependencies = [
  "ntapi",
  "regex 1.3.9",
- "uuid-sys",
  "widestring",
  "winapi 0.3.8",
 ]

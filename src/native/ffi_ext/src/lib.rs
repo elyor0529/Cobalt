@@ -4,6 +4,8 @@ pub mod win32;
 
 pub use widestring::WideString as String;
 pub use widestring::WideStr as Str;
+pub use widestring::WideCString as NulString;
+pub use widestring::WideCStr as NulStr;
 
 #[macro_export]
 macro_rules! buffer {
@@ -89,6 +91,44 @@ macro_rules! completed {
     ($sub: expr) => {
         $sub.on_complete.call(&());
     };
+}
+
+#[macro_export]
+macro_rules! read_unicode_string {
+    ($p: expr, $str: expr) => {{
+        let mut buf_len = $str.Length as usize / 2;
+        let mut buf = ffi_ext::buffer!(buf_len);
+        let res = winapi::um::memoryapi::ReadProcessMemory($p,
+            $str.Buffer as *mut _ as *mut winapi::ctypes::c_void,
+            buf.as_mut_ptr() as *mut _ as *mut winapi::ctypes::c_void,
+            buf_len * 2,
+            &mut buf_len
+        );
+        if res == 0 { ffi_ext::panic_win32!() };
+        ffi_ext::buffer_to_string!(buf)
+    }};
+}
+
+#[macro_export]
+macro_rules! read_struct {
+    ($p: expr, $addr: expr, $typ: ty) => {{
+        let mut ret: $typ = std::mem::zeroed();
+        let res = winapi::um::memoryapi::ReadProcessMemory($p,
+            $addr as *mut _ as *mut winapi::ctypes::c_void,
+            &mut ret as *mut _ as *mut winapi::ctypes::c_void,
+            std::mem::size_of::<$typ>(),
+            std::ptr::null_mut()
+        );
+        if res == 0 { ffi_ext::panic_win32!() };
+        ret
+    }};
+}
+
+#[macro_export]
+macro_rules! panic_win32 {
+    () => {{
+        panic!(std::io::Error::last_os_error().to_string())
+    }}
 }
 
 #[cfg(test)]

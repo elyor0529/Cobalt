@@ -14,9 +14,16 @@ pub struct Basic {
 #[repr(C)]
 #[derive(Debug)]
 pub struct Extended {
-    pid: u32,
-    uwp_aumid: ffi_ext::Option<ffi_ext::String>
+    process: crate::process::Basic,
+    uwp: ffi_ext::Option<Uwp>
 }
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct Uwp {
+    pub aumid: ffi_ext::String
+}
+
 
 pub unsafe fn title(hwnd: wintypes::HWND) -> ffi_ext::String {
     let len = winuser::GetWindowTextLengthW(hwnd);
@@ -32,25 +39,31 @@ pub fn pid_tid(hwnd: wintypes::HWND) -> (u32, u32) {
     (pid, tid)
 }
 
-/*
-#[no_mangle]
-pub unsafe fn uwp_aumid(win: windef::HWND) -> Option<FfiString> {
-    let pid = process_id_for_window(win);
-    let path = process_path_fast(pid);
-    if !path.eq_ignore_ascii_case("C:\\Windows\\System32\\ApplicationFrameHost.exe") { return None }
+pub unsafe fn is_uwp(pid: u32) -> bool {
+    let path = crate::process::path_fast(pid);
+    path.to_os_string().eq_ignore_ascii_case("C:\\Windows\\System32\\ApplicationFrameHost.exe")
+}
 
-    // get aumid
-    let mut property_store: *mut winapi::um::propsys::IPropertyStore = ptr::null_mut();
-    let property_store_guid = uuid::IID_IPropertyStore;
-    let res = shellapi::SHGetPropertyStoreForWindow(win,
-                                                    &property_store_guid as *const _ as *const _,
-                                                    &mut property_store as *mut _ as *mut *mut winapi::ctypes::c_void);
+pub unsafe fn aumid(hwnd: wintypes::HWND) -> ffi_ext::String {
+    let mut property_store: *mut propsys::IPropertyStore = ptr::null_mut();
+    shellapi::SHGetPropertyStoreForWindow(
+    hwnd, &uuid::IID_IPropertyStore as *const _ as *const _,
+    &mut property_store as *mut _ as *mut *mut wintypes::c_void);
 
     let mut prop: propidl::PROPVARIANT = mem::zeroed();
     (*property_store).GetValue(&propkey::PKEY_AppUserModel_ID as *const _, &mut prop);
 
     let aumid_ptr = *prop.data.pwszVal();
-    let aumid_len = len_pwstr(aumid_ptr);
-    Some(Vec::from_raw_parts(aumid_ptr, aumid_len, aumid_len))
+    ffi_ext::NulString::from_raw(aumid_ptr).to_ustring()
 }
-*/
+
+#[no_mangle]
+pub unsafe fn window_extended(basic: Basic) -> Extended {
+    let (pid, _) = pid_tid(basic.hwnd);
+    let uwp = if is_uwp(pid) {
+        ffi_ext::Option::Some(Uwp { aumid: aumid(basic.hwnd) })
+    } else {
+        ffi_ext::Option::None
+    };
+    Extended { process: crate::process::Basic { id: pid }, uwp }
+}
