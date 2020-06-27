@@ -21,19 +21,25 @@ impl<'a> StatefulWatcher<'a, ()> for ProcessExit<'a> {
         unsafe { winbase::RegisterWaitForSingleObject(
             &mut self.wait.0,
             self.proc.0, Some(ProcessExit::handler),
-            self as *mut _ as *mut ctypes::c_void,
+            self as *mut _ as *mut wintypes::c_void,
             winbase::INFINITE, winnt::WT_EXECUTEONLYONCE) };
     }
 
-    fn end(self) { }
+    fn end(self) { /* drop */ }
 
 }
 
+impl<'a> Drop for ProcessExit<'a> {
+    fn drop(&mut self) {
+        completed!(self.sub);
+        unsafe { winbase::UnregisterWait(self.wait.0) };
+    }
+}
+
 impl<'a> ProcessExit<'a> {
-    pub unsafe extern "system" fn handler(dat: *mut ctypes::c_void, _: u8) {
-        let ProcessExit { sub, wait, .. } = &mut *(dat as *mut ProcessExit);
-        next!(sub, &());
-        completed!(sub);
-        winbase::UnregisterWait(wait.0);
+    pub unsafe extern "system" fn handler(dat: *mut wintypes::c_void, _: u8) {
+        let inst = dat as *mut ProcessExit;
+        next!((*inst).sub, &());
+        ptr::drop_in_place(inst);
     }
 }
