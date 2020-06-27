@@ -24,7 +24,6 @@ pub struct Uwp {
     pub aumid: ffi_ext::String
 }
 
-
 pub unsafe fn title(hwnd: wintypes::HWND) -> ffi_ext::String {
     let len = winuser::GetWindowTextLengthW(hwnd);
     let mut buf = ffi_ext::buffer!(len + 1);
@@ -58,7 +57,7 @@ pub unsafe fn aumid(hwnd: wintypes::HWND) -> ffi_ext::String {
 }
 
 #[no_mangle]
-pub unsafe fn window_extended(basic: Basic) -> Extended {
+pub unsafe fn window_extended(basic: &Basic) -> Extended {
     let (pid, _) = pid_tid(basic.hwnd);
     let uwp = if is_uwp(pid) {
         ffi_ext::Option::Some(Uwp { aumid: aumid(basic.hwnd) })

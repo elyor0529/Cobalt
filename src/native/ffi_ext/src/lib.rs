@@ -40,6 +40,16 @@ impl<T> fmt::Debug for Ptr<extern "cdecl" fn(&T)> {
         write!(f, "{:p}", &self.0)
     }
 }
+impl<T> fmt::Debug for Ptr<*mut T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:p}", &self.0)
+    }
+}
+impl<T> fmt::Debug for Ptr<*const T> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:p}", &self.0)
+    }
+}
 
 #[repr(C, u64)]
 #[derive(Debug)]

@@ -41,6 +41,19 @@ pub fn watcher_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
                 }
             }
         },
+        "StatefulWatcher" => {
+            quote! {
+                #[no_mangle]
+                pub unsafe fn #fn_begin(self_v: &'static mut #target_ident<'static>) {
+                    self_v.begin();
+                }
+
+                #[no_mangle]
+                pub unsafe fn #fn_end(obj: #target_ident) {
+                    obj.end();
+                }
+            }
+        },
         "TransientWatcher" => {
             let arg_type = type_param(trait_args, 0);
             let globals = syn::Ident::new(format!("{}_GLOBALS", target_shouty).as_str(), target_ident.span());

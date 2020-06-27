@@ -1,10 +1,8 @@
 use proc_macros::*;
 use ffi_ext::{completed, next};
 use ffi_ext::win32::*;
-use watchers::*;
 use std::*;
 use crate::*;
-use crate::window::pid_tid;
 
 #[repr(C)]
 pub struct WindowClosed<'a> {
@@ -16,7 +14,7 @@ pub struct WindowClosed<'a> {
 #[watcher_impl]
 impl<'a> TransientWatcher<'a, ffi_ext::Ptr<wintypes::HWND>, ()> for WindowClosed<'a> {
     fn begin(win: ffi_ext::Ptr<wintypes::HWND>, sub: &'a ffi_ext::Subscription<()>) -> Self {
-        let (pid, tid) = pid_tid(win.0);
+        let (pid, tid) = crate::window::pid_tid(win.0);
         let hook = unsafe { winuser::SetWinEventHook(
             winuser::EVENT_OBJECT_DESTROY,
             winuser::EVENT_OBJECT_DESTROY,

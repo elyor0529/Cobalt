@@ -34,6 +34,7 @@ version = "0.1.0"
 dependencies = [
  "ffi_ext",
  "lazy_static 1.4.0",
+ "pelite",
  "proc_macros",
  "uuid-sys",
 ]
@@ -61,6 +62,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2abad23fbc42b3700f2f279844dc832adb2b2eb069b2df918f455c4e18cc646"
 
 [[package]]
+name = "libc"
+version = "0.2.71"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "9457b06509d27052635f90d6466700c65095fdf75409b3fbdd903e988b886f49"
+
+[[package]]
 name = "memchr"
 version = "2.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -74,6 +81,23 @@ checksum = "97ba11b4249e387303cc3a41ac79d7bdf8382ad72b64621a77bac197b75a73e2"
 dependencies = [
  "winapi 0.3.8",
 ]
+
+[[package]]
+name = "pelite"
+version = "0.8.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0c0682401ab82c0a87acb35f3a7b2ec2715c58a58d1d8ae265f67aef5348e97c"
+dependencies = [
+ "libc",
+ "pelite-macros",
+ "winapi 0.3.8",
+]
+
+[[package]]
+name = "pelite-macros"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "80476a648b958c74440f21bfd64dee8d251c461692dc94355312ec1f188a7ea0"
 
 [[package]]
 name = "proc-macro2"

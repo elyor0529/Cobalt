@@ -10,10 +10,25 @@ extern crate lazy_static;
 
 mod window;
 mod process;
-mod watchers;
 
 use ffi_ext::{next, err, completed};
 use std::*;
+
+pub trait SingletonWatcher<'a, T> {
+    fn begin(sub: &'a ffi_ext::Subscription<T>) -> Self;
+    fn end(self);
+}
+
+pub trait StatefulWatcher<'a, T> {
+    fn subscription(&'a self) -> &'a ffi_ext::Subscription<T>;
+    fn begin(&'a mut self);
+    fn end(self);
+}
+
+pub trait TransientWatcher<'a, TA, TR> {
+    fn begin(arg: TA, sub: &'a ffi_ext::Subscription<TR>) -> Self;
+    fn end(self);
+}
 
 #[no_mangle]
 pub fn range(start: u32, end: u32, sub: &ffi_ext::Subscription<u32>) {
