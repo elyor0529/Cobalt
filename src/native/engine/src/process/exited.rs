@@ -14,9 +14,8 @@ pub struct ProcessExit<'a> {
 
 #[watcher_impl]
 impl<'a> StatefulWatcher<'a, ()> for ProcessExit<'a> {
-    fn subscription(&'a self) -> &'a Subscription<()> {
-        self.sub
-    }
+
+    fn subscription(&'a self) -> &'a Subscription<()> { self.sub }
 
     fn begin(&'a mut self) {
         unsafe { winbase::RegisterWaitForSingleObject(
@@ -26,9 +25,8 @@ impl<'a> StatefulWatcher<'a, ()> for ProcessExit<'a> {
             winbase::INFINITE, winnt::WT_EXECUTEONLYONCE) };
     }
 
-    fn end(self) {
-        unimplemented!()
-    }
+    fn end(self) { }
+
 }
 
 impl<'a> ProcessExit<'a> {
