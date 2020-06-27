@@ -12,16 +12,17 @@ mod window;
 mod process;
 mod watchers;
 
+use ffi_ext::{next, err, completed};
 use std::*;
 
 #[no_mangle]
 pub fn range(start: u32, end: u32, sub: &ffi_ext::Subscription<u32>) {
     if end < start {
-        ffi_ext::err!(sub, "end cannot be before start");
+        err!(sub, "end cannot be before start");
     } else {
         for x in start..end {
-            ffi_ext::next!(sub, &x);
+            next!(sub, &x);
         }
     }
-    ffi_ext::completed!(sub);
+    completed!(sub);
 }

@@ -5,6 +5,20 @@ pub mod win32;
 pub use widestring::WideString as String;
 pub use widestring::WideStr as Str;
 
+#[macro_export]
+macro_rules! buffer {
+    ($sz: expr) => {
+        vec![0u16; $sz as usize]
+    };
+}
+
+#[macro_export]
+macro_rules! buffer_to_string {
+    ($buf: expr) => {
+        ffi_ext::String::from_vec($buf)
+    }
+}
+
 #[repr(C)]
 #[derive(Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub struct Ptr<T>(pub T);
@@ -34,16 +48,16 @@ pub enum Error {
 
 #[repr(C, u64)]
 #[derive(Debug)]
-pub enum Nullable<T> {
-    Value(T),
-    Null
+pub enum Option<T> {
+    Some(T),
+    None
 }
 
-impl<T> From<Option<T>> for Nullable<T> {
-    fn from(opt: Option<T>) -> Self {
+impl<T> From<option::Option<T>> for Option<T> {
+    fn from(opt: option::Option<T>) -> Self {
         match opt {
-            Some(x) => Nullable::Value(x),
-            None => Nullable::Null
+            Some(x) => Option::Some(x),
+            None => Option::None
         }
     }
 }

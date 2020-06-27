@@ -3,6 +3,12 @@ pub use winapi::um::*;
 pub use winapi::shared::*;
 pub use ntapi::*;
 
+pub mod wintypes {
+    pub use winapi::shared::windef::*;
+    pub use winapi::shared::minwindef::*;
+    pub use winapi::um::winnt::*;
+}
+
 #[no_mangle]
 pub unsafe fn ticks_to_filetime(ticks: minwindef::DWORD) -> i64 {
     let mut ft: minwindef::FILETIME = std::mem::zeroed();
