@@ -9,6 +9,7 @@
 extern crate lazy_static;
 
 mod window;
+mod process;
 mod watchers;
 
 use std::*;
