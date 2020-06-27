@@ -67,7 +67,7 @@ pub fn watcher_impl(_attr: TokenStream, item: TokenStream) -> TokenStream {
         _ => quote! {}
     };
 
-    dbg!("expanded: \"{}\"", expanded.to_string());
+    // dbg!("expanded: \"{}\"", expanded.to_string());
     (quote! { #impl_ #expanded }).into()
 }
 

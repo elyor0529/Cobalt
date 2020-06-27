@@ -25,6 +25,15 @@ pub struct ForegroundWindowSwitch {
     pub filetime_ticks: i64
 }
 
+#[no_mangle]
+pub unsafe fn window_title(hwnd: windef::HWND) -> ffi_ext::String {
+    let len = winuser::GetWindowTextLengthW(hwnd);
+    let mut buf = vec![0u16; len as usize+1];
+    winuser::GetWindowTextW(hwnd, buf.as_mut_ptr(), len+1);
+    buf.set_len(len as usize); // Do not include the u16 null byte at the end
+    ffi_ext::String::from_vec(buf)
+}
+
 #[derive(Debug)]
 pub struct ForegroundWindowWatcher<'a> {
     pub sub: &'a ffi_ext::Subscription<ForegroundWindowSwitch>,
@@ -40,7 +49,7 @@ impl<'a> SingletonWatcher<'a, ForegroundWindowSwitch> for ForegroundWindowWatche
                 winuser::EVENT_SYSTEM_FOREGROUND,
                 winuser::EVENT_SYSTEM_FOREGROUND,
                 ptr::null_mut(),
-                Some(foreground_window_watcher_handler),
+                Some(ForegroundWindowWatcher::handler),
                 0, 0,
                 winuser::WINEVENT_OUTOFCONTEXT) };
         ForegroundWindowWatcher { hook, sub }
@@ -52,22 +61,24 @@ impl<'a> SingletonWatcher<'a, ForegroundWindowSwitch> for ForegroundWindowWatche
     }
 }
 
-unsafe extern "system" fn foreground_window_watcher_handler(
-    _win_event_hook: windef::HWINEVENTHOOK,
-    _event: minwindef::DWORD,
-    hwnd: windef::HWND,
-    _id_object: winnt::LONG,
-    _id_child: winnt::LONG,
-    _id_event_thread: minwindef::DWORD,
-    dwms_event_time: minwindef::DWORD) {
-    let ForegroundWindowWatcher { sub, .. } = singleton_instance!(ForegroundWindowWatcher);
-    if winuser::IsWindow(hwnd) == 0 || winuser::IsWindowVisible(hwnd) == 0 { return; }
+impl<'a> ForegroundWindowWatcher<'a> {
+    unsafe extern "system" fn handler(
+        _win_event_hook: windef::HWINEVENTHOOK,
+        _event: minwindef::DWORD,
+        hwnd: windef::HWND,
+        _id_object: winnt::LONG,
+        _id_child: winnt::LONG,
+        _id_event_thread: minwindef::DWORD,
+        dwms_event_time: minwindef::DWORD) {
+        let ForegroundWindowWatcher { sub, .. } = singleton_instance!(ForegroundWindowWatcher);
+        if winuser::IsWindow(hwnd) == 0 || winuser::IsWindowVisible(hwnd) == 0 { return; }
 
-    let title = window::title(hwnd);
-    let ticks = ticks_to_filetime(dwms_event_time);
-    let win = window::Basic { hwnd, title };
-    let fg_switch = ForegroundWindowSwitch { win, filetime_ticks: ticks };
-    next!(sub, &fg_switch);
+        let title = window_title(hwnd);
+        let ticks = ticks_to_filetime(dwms_event_time);
+        let win = window::Basic { hwnd, title };
+        let fg_switch = ForegroundWindowSwitch { win, filetime_ticks: ticks };
+        next!(sub, &fg_switch);
+    }
 }
 
 #[repr(C)]
@@ -86,7 +97,7 @@ impl<'a> TransientWatcher<'a, ffi_ext::Ptr<windef::HWND>, ()> for WindowClosed<'
             winuser::EVENT_OBJECT_DESTROY,
             winuser::EVENT_OBJECT_DESTROY,
             ptr::null_mut(),
-            Some(window_closed_handler),
+            Some(WindowClosed::handler),
             pid, tid,
             winuser::WINEVENT_OUTOFCONTEXT) };
         WindowClosed { hwnd: win, sub, hook: ffi_ext::Ptr(hook) }
@@ -98,31 +109,24 @@ impl<'a> TransientWatcher<'a, ffi_ext::Ptr<windef::HWND>, ()> for WindowClosed<'
     }
 }
 
-unsafe extern "system" fn window_closed_handler(
-    _win_event_hook: windef::HWINEVENTHOOK,
-    _event: minwindef::DWORD,
-    hwnd: windef::HWND,
-    id_object: winnt::LONG,
-    id_child: winnt::LONG,
-    _id_event_thread: minwindef::DWORD,
-    _dwms_event_time: minwindef::DWORD) {
-    if id_object != winuser::OBJID_WINDOW || id_child != 0 { return; }
-    let mut globals = transient_globals!(WindowClosed);
-    let key = &ffi_ext::Ptr(hwnd);
-    let closed = globals.get(key);
-    if let Some(c) = &closed {
-        next!(c.sub, &());
-        completed!(c.sub);
-        winuser::UnhookWinEvent(c.hook.0);
-        globals.remove(key);
+impl<'a> WindowClosed<'a> {
+    unsafe extern "system" fn handler(
+        _win_event_hook: windef::HWINEVENTHOOK,
+        _event: minwindef::DWORD,
+        hwnd: windef::HWND,
+        id_object: winnt::LONG,
+        id_child: winnt::LONG,
+        _id_event_thread: minwindef::DWORD,
+        _dwms_event_time: minwindef::DWORD) {
+        if id_object != winuser::OBJID_WINDOW || id_child != 0 { return; }
+        let mut globals = transient_globals!(WindowClosed);
+        let key = &ffi_ext::Ptr(hwnd);
+        let closed = globals.get(key);
+        if let Some(c) = &closed {
+            next!(c.sub, &());
+            completed!(c.sub);
+            winuser::UnhookWinEvent(c.hook.0);
+            globals.remove(key);
+        }
     }
-}
-
-#[no_mangle]
-pub unsafe fn title(hwnd: windef::HWND) -> ffi_ext::String {
-    let len = winuser::GetWindowTextLengthW(hwnd);
-    let mut buf = vec![0u16; len as usize+1];
-    winuser::GetWindowTextW(hwnd, buf.as_mut_ptr(), len+1);
-    buf.set_len(len as usize); // Do not include the u16 null byte at the end
-    ffi_ext::String::from_vec(buf)
 }
