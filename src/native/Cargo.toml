@@ -3,5 +3,6 @@
 members = [
     "ffi_ext",
     "engine",
+    "test_helpers",
     "proc_macros",
 ]

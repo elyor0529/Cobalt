@@ -52,14 +52,14 @@ impl<T> fmt::Debug for Ptr<*const T> {
 }
 
 #[repr(C, u64)]
-#[derive(Debug)]
+#[derive(Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub enum Error {
     Win32(u32),
     Custom(String)
 }
 
 #[repr(C, u64)]
-#[derive(Debug)]
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub enum Option<T> {
     Some(T),
     None
@@ -108,7 +108,7 @@ macro_rules! read_unicode_string {
     ($p: expr, $str: expr) => {{
         let mut buf_len = $str.Length as usize / 2;
         let mut buf = ffi_ext::buffer!(buf_len);
-        let res = winapi::um::memoryapi::ReadProcessMemory($p,
+        let res = winapi::um::memoryapi::ReadProcessMemory($p.0,
             $str.Buffer as *mut _ as *mut winapi::ctypes::c_void,
             buf.as_mut_ptr() as *mut _ as *mut winapi::ctypes::c_void,
             buf_len * 2,
@@ -123,7 +123,7 @@ macro_rules! read_unicode_string {
 macro_rules! read_struct {
     ($p: expr, $addr: expr, $typ: ty) => {{
         let mut ret: $typ = std::mem::zeroed();
-        let res = winapi::um::memoryapi::ReadProcessMemory($p,
+        let res = winapi::um::memoryapi::ReadProcessMemory($p.0,
             $addr as *mut _ as *mut winapi::ctypes::c_void,
             &mut ret as *mut _ as *mut winapi::ctypes::c_void,
             std::mem::size_of::<$typ>(),

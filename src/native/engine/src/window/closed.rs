@@ -5,6 +5,7 @@ use std::*;
 use crate::*;
 
 #[repr(C)]
+#[derive(Debug)]
 pub struct WindowClosed<'a> {
     pub hwnd: ffi_ext::Ptr<wintypes::HWND>,
     pub hook: ffi_ext::Ptr<wintypes::HWINEVENTHOOK>,

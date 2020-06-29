@@ -1,7 +1,27 @@
 use ffi_ext::win32::*;
 use std::*;
 
-mod exited;
+pub mod exited;
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct Handle(pub wintypes::HANDLE);
+
+impl Handle {
+    pub fn process_read(id: u32, sync: bool) -> Handle {
+        let handle = unsafe { processthreadsapi::OpenProcess(
+            winnt::PROCESS_VM_READ | winnt::PROCESS_QUERY_INFORMATION | if sync { winnt::SYNCHRONIZE } else { 0 },
+            0, id) };
+        Handle(handle)
+    }
+}
+
+impl Drop for Handle {
+    fn drop(&mut self){
+        unsafe { handleapi::CloseHandle(self.0) };
+    }
+}
+
 
 #[repr(C)]
 #[derive(Debug)]
@@ -12,13 +32,7 @@ pub struct Basic {
 #[repr(C)]
 #[derive(Debug)]
 pub struct Extended {
-    pub handle: wintypes::HANDLE
-}
-
-impl Drop for Extended {
-    fn drop(&mut self) {
-        unsafe { handleapi::CloseHandle(self.handle) };
-    }
+    pub handle: Handle
 }
 
 #[repr(C)]
@@ -37,19 +51,17 @@ pub struct FileInfo {
 
 #[no_mangle]
 pub unsafe fn process_extended(basic: &Basic) -> Extended {
-    let handle = processthreadsapi::OpenProcess(
-        winnt::PROCESS_VM_READ | winnt::PROCESS_QUERY_INFORMATION | winnt::SYNCHRONIZE,
-        0, basic.id);
+    let handle = Handle::process_read(basic.id, true);
     Extended { handle }
 }
 
 #[no_mangle]
 pub unsafe fn process_identification(extended: &Extended) -> Identification {
-    let handle = extended.handle;
+    let handle = &extended.handle;
     let mut info: ntpsapi::PROCESS_BASIC_INFORMATION = mem::zeroed();
     let mut info_len = 0u32;
     ntpsapi::NtQueryInformationProcess(
-        handle, 0,
+        handle.0, 0,
         &mut info as *mut _ as *mut ctypes::c_void,
         mem::size_of::<ntpsapi::PROCESS_BASIC_INFORMATION>() as u32,
         &mut info_len as &mut u32); // TODO check all these values!
@@ -97,17 +109,13 @@ pub fn lang(s: &'static str) -> pelite::resources::version_info::Language {
     pelite::resources::version_info::Language::parse(&buf[..]).expect("Cannot parse language")
 }
 
-pub unsafe fn path_fast(id: u32) -> ffi_ext::String {
-    let handle = processthreadsapi::OpenProcess(
-        winnt::PROCESS_VM_READ | winnt::PROCESS_QUERY_LIMITED_INFORMATION,
-        0, id);
+pub unsafe fn path_fast(handle: &Handle) -> ffi_ext::String {
     let mut len = 1024u32; // TODO macro this pattern
     let buf = loop {
         let mut buf = ffi_ext::buffer!(len);
-        let res = winbase::QueryFullProcessImageNameW(handle, 0, buf.as_mut_ptr(), &mut len);
+        let res = winbase::QueryFullProcessImageNameW(handle.0, 0, buf.as_mut_ptr(), &mut len);
         if res != 0 { break ffi_ext::buffer_to_string!(&buf[..len as usize]) }
         len *= 2;
     };
-    handleapi::CloseHandle(handle);
     buf
 }

@@ -1,8 +1,8 @@
 use ffi_ext::win32::*;
 use std::*;
 
-mod foreground;
-mod closed;
+pub mod foreground;
+pub mod closed;
 
 #[repr(C)]
 #[derive(Debug)]
@@ -14,12 +14,12 @@ pub struct Basic {
 #[repr(C)]
 #[derive(Debug)]
 pub struct Extended {
-    process: crate::process::Basic,
-    uwp: ffi_ext::Option<Uwp>
+    pub process: crate::process::Basic,
+    pub uwp: ffi_ext::Option<Uwp>
 }
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Uwp {
     pub aumid: ffi_ext::String
 }
@@ -39,8 +39,11 @@ pub fn pid_tid(hwnd: wintypes::HWND) -> (u32, u32) {
 }
 
 pub unsafe fn is_uwp(pid: u32) -> bool {
-    let path = crate::process::path_fast(pid);
-    path.to_os_string().eq_ignore_ascii_case("C:\\Windows\\System32\\ApplicationFrameHost.exe")
+    let handle = crate::process::Handle::process_read(pid, false);
+    if winuser::IsImmersiveProcess(handle.0) != 0 {
+        let path = crate::process::path_fast(&handle);
+        path.to_os_string().eq_ignore_ascii_case("C:\\Windows\\System32\\ApplicationFrameHost.exe") // double check
+    } else { false }
 }
 
 pub unsafe fn aumid(hwnd: wintypes::HWND) -> ffi_ext::String {
