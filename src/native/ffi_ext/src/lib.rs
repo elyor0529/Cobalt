@@ -1,6 +1,7 @@
 use std::*;
 
 pub mod win32;
+pub mod uwp;
 
 pub use widestring::WideString as String;
 pub use widestring::WideStr as Str;
@@ -161,3 +162,4 @@ mod tests {
         assert!(re.is_match(out.as_str()));
     }
 }
+

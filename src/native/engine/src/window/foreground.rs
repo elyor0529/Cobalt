@@ -51,7 +51,7 @@ impl<'a> ForegroundWindowWatcher<'a> {
         let ForegroundWindowWatcher { sub, .. } = singleton_instance!(ForegroundWindowWatcher);
 
         let title = window::title(hwnd);
-        let filetime_ticks = ticks_to_filetime(dwms_event_time);
+        let filetime_ticks = Ticks(dwms_event_time).as_filetime();
         let win = window::Basic { hwnd, title };
         let fg_switch = ForegroundWindowSwitch { win, filetime_ticks };
         next!(sub, &fg_switch);

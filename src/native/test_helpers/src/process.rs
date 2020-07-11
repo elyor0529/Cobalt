@@ -69,8 +69,9 @@ impl Process {
         dat.1.map(|hwnd| engine::window::Basic { hwnd, title: unsafe { engine::window::title(hwnd) } } )
     }
 
-    extern "system" fn enum_windows_callback(hwnd: wintypes::HWND, lparam: isize) -> i32 {
-        let dat = unsafe { &mut *(lparam as *mut (u32, Option<wintypes::HWND>)) };
+    unsafe extern "system" fn enum_windows_callback(hwnd: wintypes::HWND, lparam: isize) -> i32 {
+        let dat = &mut *(lparam as *mut (u32, Option<wintypes::HWND>));
+        dbg!(engine::window::title(hwnd).to_string_lossy());
         if dat.0 == engine::window::pid_tid(hwnd).0 && Process::is_main_window(hwnd) {
             dat.1 = Some(hwnd);
             0

@@ -9,5 +9,9 @@ edition = "2018"
 [dependencies]
 winapi = { version = "0.3", features = ["winuser", "winbase", "memoryapi", "sysinfoapi", "processthreadsapi", "handleapi", "shellapi", "propsys", "propkey", "threadpoollegacyapiset"] }
 ntapi = "0.2"
+winrt = "0.7"
 widestring = "0.4.2"
 regex = "1"
+
+[build-dependencies]
+winrt = "0.7.0"
