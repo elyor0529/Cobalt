@@ -1,5 +1,5 @@
 [package]
-name = "ffi_ext"
+name = "ffi"
 version = "0.1.0"
 authors = ["Enigmatrix <enigmatrix2000@gmail.com>"]
 edition = "2018"
@@ -7,8 +7,8 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-winapi = { version = "0.3", features = ["winuser", "winbase", "memoryapi", "sysinfoapi", "processthreadsapi", "handleapi", "shellapi", "propsys", "propkey", "threadpoollegacyapiset"] }
-ntapi = "0.2"
+winapi = { version = "0.3", features = ["everything", "impl-default", "impl-debug"] }
+ntapi = { version = "0.2", features = ["user", "impl-default"] }
 winrt = "0.7"
 widestring = "0.4.2"
 regex = "1"

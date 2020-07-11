@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
-    "ffi_ext",
+    "ffi",
     "engine",
     "test_helpers",
     "proc_macros",

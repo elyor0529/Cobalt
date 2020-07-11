@@ -3,7 +3,7 @@ mod process;
 #[cfg(test)]
 mod tests {
     use crate::process::Process;
-    use ffi_ext::win32::winuser::GetForegroundWindow;
+    use ffi::*;
 
     #[test]
     fn window_extended_info() {
@@ -12,7 +12,7 @@ mod tests {
         let win_e = unsafe { engine::window::window_extended(&proc.main_window().unwrap()) };
 
         assert_eq!(win_e.process.id, proc.info.dwProcessId);
-        assert_eq!(win_e.uwp, ffi_ext::Option::None);
+        assert_eq!(win_e.uwp, ffi::Option::None);
     }
 
     #[test]
@@ -22,15 +22,15 @@ mod tests {
         let win_e = unsafe { engine::window::window_extended(&proc.main_window().unwrap()) };
 
         assert_eq!(win_e.process.id, proc.info.dwProcessId);
-        assert_ne!(win_e.uwp, ffi_ext::Option::None);
+        assert_ne!(win_e.uwp, ffi::Option::None);
     }
 
     #[test]
     fn winrt_import() {
-        //let what = ffi_ext::win32::AppInfo = unsafe { std::mem::zeroed() };
+        //let what = ffi::win32::AppInfo = unsafe { std::mem::zeroed() };
         let test_aumid = "Microsoft.SkypeApp_kzf8qxf38zg5c!App";
         let result =
-            ffi_ext::uwp::system::AppDiagnosticInfo::request_info_for_app_user_model_id(test_aumid)
+            ffi::uwp::system::AppDiagnosticInfo::request_info_for_app_user_model_id(test_aumid)
                 .expect("async operation to be returned")
                 .get()
                 .expect("async operation to be completed");
@@ -42,7 +42,7 @@ mod tests {
             dbg!(display_info.description().unwrap());
             dbg!(display_info.display_name().unwrap());
             let logo = display_info
-                .get_logo(ffi_ext::uwp::foundation::Size {
+                .get_logo(ffi::uwp::foundation::Size {
                     width: 144.0,
                     height: 144.0,
                 })
@@ -53,7 +53,7 @@ mod tests {
                 .unwrap();
             let logo_sz = logo.size().unwrap();
             let logo_reader =
-                ffi_ext::uwp::storage::streams::DataReader::create_data_reader(logo).unwrap();
+                ffi::uwp::storage::streams::DataReader::create_data_reader(logo).unwrap();
             logo_reader
                 .load_async(logo_sz as u32)
                 .unwrap()

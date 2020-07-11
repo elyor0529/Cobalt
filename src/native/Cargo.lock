@@ -32,7 +32,7 @@ dependencies = [
 name = "engine"
 version = "0.1.0"
 dependencies = [
- "ffi_ext",
+ "ffi",
  "lazy_static 1.4.0",
  "pelite",
  "proc_macros",
@@ -40,7 +40,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "ffi_ext"
+name = "ffi"
 version = "0.1.0"
 dependencies = [
  "ntapi",
@@ -218,7 +218,7 @@ name = "test_helpers"
 version = "0.1.0"
 dependencies = [
  "engine",
- "ffi_ext",
+ "ffi",
 ]
 
 [[package]]
