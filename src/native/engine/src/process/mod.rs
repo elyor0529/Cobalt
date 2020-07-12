@@ -104,11 +104,12 @@ pub fn lang(s: &'static str) -> pelite::resources::version_info::Language {
     pelite::resources::version_info::Language::parse(&buf[..]).expect("Cannot parse language")
 }
 
-pub unsafe fn path_fast(handle: &ProcessHandle) -> ffi::String {
+pub fn path_fast(handle: &ProcessHandle) -> ffi::String {
     let mut len = 1024u32; // TODO macro this pattern
     let buf = loop {
         let mut buf = ffi::buffer!(len);
-        let res = winbase::QueryFullProcessImageNameW(handle.0, 0, buf.as_mut_ptr(), &mut len);
+        let res =
+            unsafe { winbase::QueryFullProcessImageNameW(handle.0, 0, buf.as_mut_ptr(), &mut len) };
         if res != 0 {
             // TODO check GetLastError, make sure its some error like not enough buffer
             break ffi::buffer_to_string!(&buf[..len as usize]);

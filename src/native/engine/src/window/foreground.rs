@@ -1,6 +1,5 @@
 use crate::*;
-use ffi::windows::*;
-use ffi::*;
+use ffi::{self::*, windows::*};
 use proc_macros::*;
 
 #[repr(C)]
@@ -13,31 +12,28 @@ pub struct ForegroundWindowSwitch {
 #[derive(Debug)]
 pub struct ForegroundWindowWatcher<'a> {
     pub sub: &'a ffi::Subscription<ForegroundWindowSwitch>,
-    pub hook: wintypes::HWINEVENTHOOK,
+    pub hook: WinEventHook,
 }
 
 // #[watcher_impl]
 impl<'a> SingletonWatcher<'a, ForegroundWindowSwitch> for ForegroundWindowWatcher<'a> {
-    fn begin(sub: &'a ffi::Subscription<ForegroundWindowSwitch>) -> Self {
-        let hook = unsafe {
-            winuser::SetWinEventHook(
-                winuser::EVENT_SYSTEM_FOREGROUND,
-                winuser::EVENT_SYSTEM_FOREGROUND,
-                ptr::null_mut(),
-                Some(ForegroundWindowWatcher::handler),
-                0,
-                0,
-                winuser::WINEVENT_OUTOFCONTEXT,
-            )
-        };
-        ForegroundWindowWatcher { hook, sub }
+    fn begin(sub: &'a ffi::Subscription<ForegroundWindowSwitch>) -> ffi::Result<Self> {
+        let hook = WinEventHook::new(
+            winuser::EVENT_SYSTEM_FOREGROUND,
+            winuser::EVENT_SYSTEM_FOREGROUND,
+            ptr::null_mut(),
+            Some(ForegroundWindowWatcher::handler),
+            0,
+            0,
+            winuser::WINEVENT_OUTOFCONTEXT,
+        )?;
+        ffi::Result::Ok(ForegroundWindowWatcher { hook, sub })
     }
+}
 
-    fn end(self) {
+impl<'a> Drop for ForegroundWindowWatcher<'a> {
+    fn drop(&mut self) {
         completed!(self.sub);
-        unsafe {
-            winuser::UnhookWinEvent(self.hook);
-        }
     }
 }
 

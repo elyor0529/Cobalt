@@ -1,8 +1,6 @@
 use crate::*;
-use ffi::win32::*;
-use ffi::{completed, next};
+use ffi::{self::*, windows::*};
 use proc_macros::*;
-use std::*;
 
 #[repr(C)]
 #[derive(Debug)]

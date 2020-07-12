@@ -23,7 +23,7 @@ macro_rules! expect {
 macro_rules! hresult {
     ($e: expr) => {{
         let val = unsafe { $e };
-        if val != 0 {
+        if val < 0 {
             Err($crate::error::Error::HResult(val))
         } else {
             Ok(val)
@@ -35,7 +35,7 @@ macro_rules! hresult {
 macro_rules! ntstatus {
     ($e: expr) => {{
         let val = unsafe { $e };
-        if val != 0 {
+        if val < 0 {
             Err($crate::error::Error::NtStatus(val))
         } else {
             Ok(val)

@@ -1,6 +1,6 @@
+use ffi::windows::*;
 use ffi::*;
 use std::io::Error;
-use winapi::_core::time::Duration;
 
 pub struct Process {
     pub info: processthreadsapi::PROCESS_INFORMATION,
@@ -33,11 +33,11 @@ impl Process {
             //winuser::WaitForInputIdle(pi.hProcess, winbase::INFINITE);
             loop {
                 if let Some(win) = proc.main_window() {
-                    if win.title.len() != 0 {
+                    if win.basic.assume_init().title.len() != 0 {
                         break;
                     }
                 }
-                std::thread::sleep(Duration::from_millis(1000))
+                std::thread::sleep(std::time::Duration::from_millis(1000))
             }
             proc
         };
@@ -54,7 +54,7 @@ impl Process {
             }
 
             if let Some(win) = self.main_window() {
-                winuser::SetForegroundWindow(win.hwnd);
+                winuser::SetForegroundWindow(win.basic.assume_init().hwnd);
             } else {
                 println!("switch failed");
             }
@@ -72,25 +72,30 @@ impl Process {
         };
     }
 
-    pub fn main_window(&self) -> Option<engine::window::Basic> {
-        let mut dat: (u32, Option<wintypes::HWND>) = (self.info.dwProcessId, None);
+    pub fn main_window(&self) -> std::option::Option<engine::window::Window> {
+        let mut dat: (u32, std::option::Option<wintypes::HWND>) =
+            (self.info.dwProcessId, std::option::Option::None);
         unsafe {
             winuser::EnumWindows(
                 Some(Process::enum_windows_callback),
-                &mut dat as *mut (u32, Option<wintypes::HWND>) as isize,
+                &mut dat as *mut (u32, std::option::Option<wintypes::HWND>) as isize,
             )
         };
-        dat.1.map(|hwnd| engine::window::Basic {
-            hwnd,
-            title: unsafe { engine::window::title(hwnd) },
+        dat.1.map(|hwnd| engine::window::Window {
+            basic: std::mem::MaybeUninit::new(engine::window::Basic {
+                hwnd,
+                title: engine::window::Window::title(hwnd),
+            }),
+            extended: std::mem::MaybeUninit::zeroed(),
         })
     }
 
     unsafe extern "system" fn enum_windows_callback(hwnd: wintypes::HWND, lparam: isize) -> i32 {
-        let dat = &mut *(lparam as *mut (u32, Option<wintypes::HWND>));
-        dbg!(engine::window::title(hwnd).to_string_lossy());
-        if dat.0 == engine::window::pid_tid(hwnd).0 && Process::is_main_window(hwnd) {
-            dat.1 = Some(hwnd);
+        let dat = &mut *(lparam as *mut (u32, std::option::Option<wintypes::HWND>));
+        if dat.0 == engine::window::Window::pid_tid(hwnd).unwrap().0
+            && Process::is_main_window(hwnd)
+        {
+            dat.1 = std::option::Option::Some(hwnd);
             0
         } else {
             1

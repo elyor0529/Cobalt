@@ -1,4 +1,4 @@
-use winapi::_core::ops::Try;
+use std::ops::Try;
 
 #[repr(C, u64)]
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
@@ -7,7 +7,17 @@ pub enum Result<T> {
     Err(crate::error::Error),
 }
 
-impl<T> std::ops::Try for Result<T> {
+impl<T> Result<T> {
+    pub fn unwrap(self) -> T {
+        if let Result::Ok(x) = self {
+            x
+        } else {
+            panic!("unwrap failed");
+        }
+    }
+}
+
+impl<T> Try for Result<T> {
     type Ok = T;
     type Error = crate::error::Error;
 
@@ -31,7 +41,13 @@ impl<T> From<std::result::Result<T, std::boxed::Box<dyn std::error::Error>>> for
     fn from(res: std::result::Result<T, std::boxed::Box<dyn std::error::Error>>) -> Self {
         match res {
             Ok(x) => Result::Ok(x),
-            Err(e) => Result::Err(crate::error::Error::Custom(e.to_string().into())),
+            Err(e) => Result::Err(e.into()),
         }
+    }
+}
+
+impl From<std::boxed::Box<dyn std::error::Error>> for crate::error::Error {
+    fn from(e: std::boxed::Box<dyn std::error::Error>) -> Self {
+        crate::error::Error::Custom(e.to_string().into())
     }
 }

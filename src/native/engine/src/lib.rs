@@ -4,6 +4,8 @@
 #![feature(try_trait)]
 #![feature(osstring_ascii)]
 #![feature(proc_macro_hygiene)]
+#![feature(maybe_uninit_extra)]
+#![feature(maybe_uninit_ref)]
 
 pub mod process;
 pub mod window;
