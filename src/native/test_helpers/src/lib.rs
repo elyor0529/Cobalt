@@ -1,5 +1,6 @@
 #![feature(maybe_uninit_ref)]
 
+mod macro_parts;
 mod process;
 
 #[cfg(test)]
@@ -13,10 +14,10 @@ mod tests {
         win_e.extended().unwrap();
 
         assert_eq!(
-            unsafe { win_e.extended.get_ref() }.process.id,
+            win_e.extended.as_ref().unwrap().process.id,
             proc.info.dwProcessId
         );
-        assert_eq!(unsafe { win_e.extended.get_ref() }.uwp, ffi::Option::None);
+        assert_eq!(win_e.extended.as_ref().unwrap().uwp, ffi::Option::None);
     }
 
     #[test]
@@ -26,10 +27,10 @@ mod tests {
         win_e.extended().unwrap();
 
         assert_eq!(
-            unsafe { win_e.extended.get_ref() }.process.id,
+            win_e.extended.as_ref().unwrap().process.id,
             proc.info.dwProcessId
         );
-        assert_eq!(unsafe { win_e.extended.get_ref() }.uwp, ffi::Option::None);
+        assert_eq!(win_e.extended.as_ref().unwrap().uwp, ffi::Option::None);
     }
 
     #[test]
@@ -81,17 +82,14 @@ mod tests {
         let proc2 = Process::start("\"C:\\Program Files\\Windows NT\\Accessories\\wordpad.exe\"");
 
         assert_eq!(
-            proc2
-                .main_window()
-                .map(|x| unsafe { x.basic.assume_init() }.hwnd),
+            proc2.main_window().map(|x| x.basic.hwnd),
             Some(unsafe { ffi::windows::winuser::GetForegroundWindow() })
         );
 
         proc.switch_to_foreground();
 
         assert_eq!(
-            proc.main_window()
-                .map(|x| unsafe { x.basic.assume_init() }.hwnd),
+            proc.main_window().map(|x| x.basic.hwnd),
             Some(unsafe { ffi::windows::winuser::GetForegroundWindow() })
         );
     }

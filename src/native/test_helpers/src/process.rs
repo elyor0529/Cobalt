@@ -1,5 +1,4 @@
 use ffi::windows::*;
-use ffi::*;
 use std::io::Error;
 
 pub struct Process {
@@ -33,7 +32,7 @@ impl Process {
             //winuser::WaitForInputIdle(pi.hProcess, winbase::INFINITE);
             loop {
                 if let Some(win) = proc.main_window() {
-                    if win.basic.assume_init().title.len() != 0 {
+                    if win.basic.title.len() != 0 {
                         break;
                     }
                 }
@@ -54,7 +53,7 @@ impl Process {
             }
 
             if let Some(win) = self.main_window() {
-                winuser::SetForegroundWindow(win.basic.assume_init().hwnd);
+                winuser::SetForegroundWindow(win.basic.hwnd);
             } else {
                 println!("switch failed");
             }
@@ -82,11 +81,11 @@ impl Process {
             )
         };
         dat.1.map(|hwnd| engine::window::Window {
-            basic: std::mem::MaybeUninit::new(engine::window::Basic {
+            basic: (engine::window::Basic {
                 hwnd,
                 title: engine::window::Window::title(hwnd),
             }),
-            extended: std::mem::MaybeUninit::zeroed(),
+            extended: ffi::Option::None,
         })
     }
 

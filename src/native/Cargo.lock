@@ -219,6 +219,9 @@ version = "0.1.0"
 dependencies = [
  "engine",
  "ffi",
+ "proc_macros",
+ "quote",
+ "syn",
 ]
 
 [[package]]

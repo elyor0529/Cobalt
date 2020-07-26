@@ -1,36 +1,34 @@
-use ffi::windows::*;
-use ffi::*;
+use ffi::{windows::*, *};
+use proc_macros::*;
 
 // pub mod closed;
 // pub mod foreground;
 
-#[repr(C)]
-#[derive(Debug)]
+#[ffi_struct]
 pub struct Basic {
     pub hwnd: wintypes::HWND,
     pub title: ffi::String,
 }
 
-#[repr(C)]
-#[derive(Debug)]
+#[ffi_struct]
+#[derive(Eq, PartialEq)]
+pub struct Uwp {
+    pub aumid: ffi::String,
+}
+
+#[ffi_struct]
 pub struct Extended {
     pub process: crate::process::Basic,
     pub uwp: ffi::Option<Uwp>,
 }
 
-#[repr(C)]
-#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
-pub struct Uwp {
-    pub aumid: ffi::String,
-}
-
-#[repr(C)]
-#[derive(Debug)]
+#[ffi_struct(drop)]
 pub struct Window {
-    pub basic: std::mem::MaybeUninit<Basic>,
-    pub extended: std::mem::MaybeUninit<Extended>,
+    pub basic: Basic,
+    pub extended: ffi::Option<Extended>,
 }
 
+#[ffi_impl]
 impl Window {
     pub fn title(hwnd: wintypes::HWND) -> ffi::String {
         let len = unsafe { winuser::GetWindowTextLengthW(hwnd) }; // TODO this could error out
@@ -52,7 +50,7 @@ impl Window {
     pub fn is_uwp(pid: u32) -> ffi::Result<bool> {
         let handle = ProcessHandle::readable(pid, false)?;
         ffi::Result::Ok(if unsafe { winuser::IsImmersiveProcess(handle.0) } != 0 {
-            let path = crate::process::path_fast(&handle);
+            let path = crate::process::Process::path_fast(&handle);
             path.to_os_string()
                 .eq_ignore_ascii_case("C:\\Windows\\System32\\ApplicationFrameHost.exe")
         // double check
@@ -78,9 +76,9 @@ impl Window {
         ffi::Result::Ok(unsafe { ffi::NulString::from_raw(aumid_ptr).to_ustring() })
     }
 
-    #[no_mangle]
+    #[ffi_fn]
     pub fn extended(&mut self) -> ffi::Result<()> {
-        let hwnd = unsafe { (&self.basic).get_ref() }.hwnd;
+        let hwnd = self.basic.hwnd;
         let (pid, _) = Window::pid_tid(hwnd)?;
         let uwp = if Window::is_uwp(pid)? {
             ffi::Option::Some(Uwp {
@@ -89,7 +87,7 @@ impl Window {
         } else {
             ffi::Option::None
         };
-        self.extended.write(Extended {
+        self.extended = ffi::Option::Some(Extended {
             process: crate::process::Basic { id: pid },
             uwp,
         });
