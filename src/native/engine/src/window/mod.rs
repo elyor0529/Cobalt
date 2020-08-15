@@ -2,7 +2,7 @@ use ffi::{windows::*, *};
 use proc_macros::*;
 
 // pub mod closed;
-// pub mod foreground;
+pub mod foreground;
 
 #[ffi_struct]
 pub struct Basic {
@@ -72,7 +72,7 @@ impl Window {
         let mut prop: propidl::PROPVARIANT = Default::default();
         hresult!((*property_store).GetValue(&propkey::PKEY_AppUserModel_ID as *const _, &mut prop))?;
 
-        let aumid_ptr = unsafe { *prop.data.pwszVal() };
+        let aumid_ptr = unsafe { *prop.data.pwszVal() }; // TODO check
         ffi::Result::Ok(unsafe { ffi::NulString::from_raw(aumid_ptr).to_ustring() })
     }
 
@@ -92,6 +92,15 @@ impl Window {
             uwp,
         });
         ffi::Result::Ok(())
+    }
+}
+
+impl From<Basic> for Window {
+    fn from(basic: Basic) -> Self {
+        Self {
+            basic,
+            extended: ffi::Option::None,
+        }
     }
 }
 

@@ -1,39 +1,39 @@
 use crate::*;
-use ffi::{self::*, windows::*};
+use ffi::{windows::*, *};
 use proc_macros::*;
 
 #[repr(C)]
 #[derive(Debug)]
 pub struct ForegroundWindowSwitch {
-    pub win: window::Basic,
+    pub window: window::Window,
     pub filetime_ticks: i64,
 }
 
 #[derive(Debug)]
 pub struct ForegroundWindowWatcher<'a> {
-    pub sub: &'a ffi::Subscription<ForegroundWindowSwitch>,
+    pub sub: &'a mut ffi::Subscription<ForegroundWindowSwitch>,
     pub hook: WinEventHook,
 }
 
-// #[watcher_impl]
-impl<'a> SingletonWatcher<'a, ForegroundWindowSwitch> for ForegroundWindowWatcher<'a> {
-    fn begin(sub: &'a ffi::Subscription<ForegroundWindowSwitch>) -> ffi::Result<Self> {
+#[watcher(single)]
+impl<'a> Watcher<'a, ForegroundWindowSwitch, ()> for ForegroundWindowWatcher<'a> {
+    fn new(sub: &'a mut ffi::Subscription<ForegroundWindowSwitch>, _: ()) -> ffi::Result<Self> {
         let hook = WinEventHook::new(
-            winuser::EVENT_SYSTEM_FOREGROUND,
-            winuser::EVENT_SYSTEM_FOREGROUND,
-            ptr::null_mut(),
+            EventRange::Single(WinEvent::SystemForeground),
+            EventLocality::Global,
             Some(ForegroundWindowWatcher::handler),
-            0,
-            0,
-            winuser::WINEVENT_OUTOFCONTEXT,
         )?;
         ffi::Result::Ok(ForegroundWindowWatcher { hook, sub })
+    }
+
+    fn subscription(&self) -> &Subscription<ForegroundWindowSwitch> {
+        self.sub
     }
 }
 
 impl<'a> Drop for ForegroundWindowWatcher<'a> {
     fn drop(&mut self) {
-        completed!(self.sub);
+        completed!(self.subscription());
     }
 }
 
@@ -50,15 +50,16 @@ impl<'a> ForegroundWindowWatcher<'a> {
         if winuser::IsWindow(hwnd) == 0 || winuser::IsWindowVisible(hwnd) == 0 {
             return;
         }
-        let ForegroundWindowWatcher { sub, .. } = singleton_instance!(ForegroundWindowWatcher);
 
-        let title = window::title(hwnd);
+        /*let ForegroundWindowWatcher { sub, .. } = singleton_instance!(ForegroundWindowWatcher);
+
+        let title = window::Window::title(hwnd);
         let filetime_ticks = Ticks(dwms_event_time).filetime();
-        let win = window::Basic { hwnd, title };
-        let fg_switch = ForegroundWindowSwitch {
-            win,
+        let window = window::Basic { hwnd, title }.into();
+        let mut fg_switch = ForegroundWindowSwitch {
+            window,
             filetime_ticks,
         };
-        next!(sub, &fg_switch);
+        next!(sub, &mut fg_switch);*/
     }
 }

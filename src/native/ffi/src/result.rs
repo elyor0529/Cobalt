@@ -5,3 +5,13 @@ impl From<std::boxed::Box<dyn std::error::Error>> for crate::error::Error {
         crate::error::Error::Custom(e.to_string().into())
     }
 }
+
+pub fn write_out<T>(res: Result<T>, o: &mut T) -> crate::error::Status {
+    match res {
+        Ok(x) => {
+            *o = x;
+            crate::error::Status::Success
+        }
+        Err(e) => e.into(),
+    }
+}

@@ -36,6 +36,7 @@ impl<T> Out<T> {
 }
 
 #[repr(C)]
+#[derive(Debug, Ord, PartialOrd, Eq, PartialEq)]
 pub struct Box<T>(*mut T);
 
 impl<T> Box<T> {

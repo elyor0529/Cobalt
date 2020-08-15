@@ -1,7 +1,7 @@
 use inflector::Inflector;
 use proc_macro::TokenStream;
+use proc_macro2;
 use quote::*;
-use syn::FnArg;
 use syn::*;
 
 #[proc_macro_attribute]
@@ -22,17 +22,10 @@ pub fn ffi_struct(attr: TokenStream, item: TokenStream) -> TokenStream {
     structx.attrs.push(parse_quote! { #[derive(Debug)] });
 
     let self_ty = &structx.ident;
-    let self_ty_name = { quote!( #self_ty ).to_string() };
+    let self_ty_name = quote!( #self_ty ).to_string();
     let self_ty_drop = format_ident!("{}_drop", self_ty_name.to_snake_case());
 
-    let gen_drop_fn = args.iter().any(|a| {
-        if let NestedMeta::Meta(m) = a {
-            if let Meta::Path(p) = m {
-                return p.segments.iter().any(|f| f.ident.to_string() == "drop");
-            }
-        }
-        false
-    });
+    let gen_drop_fn = attr0(&args) == Some("drop".to_string());
 
     let drop_fn = if gen_drop_fn {
         quote! {
@@ -47,6 +40,22 @@ pub fn ffi_struct(attr: TokenStream, item: TokenStream) -> TokenStream {
 
     (quote! {
         #structx
+
+        #drop_fn
+    })
+    .into()
+}
+
+#[proc_macro_attribute] // marker attribute
+pub fn ffi_enum(_: TokenStream, item: TokenStream) -> TokenStream {
+    let mut enumx = parse_macro_input!(item as ItemEnum);
+
+    enumx.attrs.push(parse_quote! { #[derive(Debug)] });
+
+    let drop_fn = type_drop_fn(&enumx.ident);
+
+    (quote! {
+        #enumx
 
         #drop_fn
     })
@@ -83,6 +92,17 @@ fn ffi_ify_inner(_: AttributeArgs, implx: ItemImpl) -> syn::Result<TokenStream> 
     };
 
     Ok(output.into())
+}
+
+fn attr0(args: &AttributeArgs) -> Option<String> {
+    for a in args {
+        if let NestedMeta::Meta(m) = a {
+            if let Meta::Path(p) = m {
+                return Some(p.segments[0].ident.to_string());
+            }
+        }
+    }
+    None
 }
 
 fn is_self_fn(sig: &Signature) -> bool {
@@ -124,7 +144,7 @@ fn self_result_fn_to_ffi_fn(sig: Signature, self_ty: &Type) -> Result<ItemFn> {
 
     output_sig.ident = format_ident!("{}_{}", self_ty_name.to_snake_case(), sig.ident);
     *output_sig.inputs.first_mut().unwrap() = parse_quote! { x: &#self_ty_lf mut #self_ty };
-    output_sig.output = parse_quote! { -> ffi::error::Error };
+    output_sig.output = parse_quote! { -> ffi::error::Status };
 
     let mut num_args: usize = 0;
     for (i, x) in output_sig.inputs.iter_mut().enumerate() {
@@ -142,17 +162,84 @@ fn self_result_fn_to_ffi_fn(sig: Signature, self_ty: &Type) -> Result<ItemFn> {
     let res_fn: ItemFn = parse_quote! {
         #[no_mangle]
         #output_sig {
-            let res = arg0.#fn_name(#(#args),*);
-            match res {
-                Ok(x) => {
-                    *o = x;
-                    ffi::error::Error::Win32(0) // TODO change this
-                },
-                Err(e) => e
-            }
+            ffi::write_out(arg0.#fn_name(#(#args),*), o)
         }
     };
     Ok(res_fn)
+}
+
+fn type_drop_fn(t: &Ident) -> proc_macro2::TokenStream {
+    let fn_name = format_ident!("{}_drop", t.to_token_stream().to_string());
+    quote! {
+        unsafe fn #fn_name(o: &mut std::mem::ManuallyDrop<#t>) {
+            std::mem::ManuallyDrop::drop(o);
+        }
+    }
+}
+
+#[proc_macro_attribute]
+pub fn watcher(attr: TokenStream, item: TokenStream) -> TokenStream {
+    let args = parse_macro_input!(attr as AttributeArgs);
+    let implx = parse_macro_input!(item as ItemImpl);
+    let attr = attr0(&args).unwrap();
+    watcher_inner(attr, implx)
+        .unwrap_or_else(|e| e.to_compile_error().into())
+        .into()
+}
+
+fn watcher_inner(attr: String, implx: ItemImpl) -> syn::Result<TokenStream> {
+    let &(_, trait_path, _) = &implx.trait_.as_ref().unwrap();
+    let syn::PathSegment {
+        arguments: trait_args,
+        ..
+    } = get_path(trait_path).unwrap();
+
+    let target = get_type_path(implx.self_ty.as_ref()).unwrap();
+    let target_ident = &target.ident;
+    let target_str = target.ident.to_string();
+    let target_snake = target_str.to_snake_case();
+    let target_shouty = target_str.to_screaming_snake_case();
+
+    let t = type_param(trait_args, 0).unwrap();
+    let ta = type_param(trait_args, 1).unwrap();
+
+    let new_fn = format_ident!("{}_new", target_snake);
+    let drop_fn = format_ident!("{}_new", target_snake);
+
+    let instance = match attr.as_str() {
+        "single" => {
+            let globals = format_ident!("{}_GLOBAL", target_shouty);
+
+            quote! {
+
+                pub unsafe fn #new_fn<'a>(sub: &'a mut Subscription<#t>, arg: #ta, o: &'a mut #target) -> ffi::Status {
+                    match #target_ident::new(sub, arg) {
+                        ffi::Result::Ok(x) => {
+                            *o = x;
+                            ffi::error::Status::Success
+                        },
+                        ffi::Results::Err(e) => e.into()
+                    }
+                }
+
+                pub unsafe fn #drop_fn(d: &mut std::mem::ManuallyDrop<#target_ident>) {
+                    std::mem::ManuallyDrop::drop(d);
+                }
+
+            }
+        }
+        _ => panic!("Invalid watcher argument"),
+    };
+
+    let res = quote! {
+        #implx
+
+        #new_fn
+        #drop_fn
+        #instance
+    };
+    println!("{}", res.to_string());
+    Ok(res.into())
 }
 
 #[proc_macro_attribute]

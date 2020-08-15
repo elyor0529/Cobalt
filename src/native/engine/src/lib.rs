@@ -31,6 +31,11 @@ pub trait TransientWatcher<'a, TA, TR> {
     fn end(self);
 }
 
+pub trait Watcher<'a, T, TA>: Sized + Drop {
+    fn new(sub: &'a mut Subscription<T>, arg: TA) -> ffi::Result<Self>;
+    fn subscription(&'a self) -> &'a Subscription<T>;
+}
+
 #[no_mangle]
 pub fn range(start: u32, end: u32, sub: &ffi::Subscription<u32>) {
     if end < start {
