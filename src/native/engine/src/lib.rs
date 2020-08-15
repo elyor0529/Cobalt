@@ -12,25 +12,6 @@ pub mod window;
 
 use ffi::*;
 
-// watcher that is a singleton (Rust side)
-pub trait SingletonWatcher<'a, T> {
-    fn begin(sub: &'a ffi::Subscription<T>) -> Self;
-    fn end(self);
-}
-
-// watcher that takes care of its own state (provided by C#)
-pub trait StatefulWatcher<'a, T> {
-    fn subscription(&'a self) -> &'a ffi::Subscription<T>;
-    fn begin(&'a mut self);
-    fn end(self);
-}
-
-// watcher that needs its state to be managed using a global hashmap (Rust side)
-pub trait TransientWatcher<'a, TA, TR> {
-    fn begin(arg: TA, sub: &'a ffi::Subscription<TR>) -> Self;
-    fn end(self);
-}
-
 pub trait Watcher<'a, T, TA>: Sized + Drop {
     fn new(sub: &'a mut Subscription<T>, arg: TA) -> ffi::Result<Self>;
     fn subscription(&'a self) -> &'a Subscription<T>;

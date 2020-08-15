@@ -2,7 +2,7 @@ use crate::windows::*;
 use crate::*;
 
 #[repr(C)]
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct ProcessHandle(pub wintypes::HANDLE);
 
 impl ProcessHandle {

@@ -5,6 +5,7 @@ use proc_macros::*;
 pub mod foreground;
 
 #[ffi_struct]
+#[derive(Eq, PartialEq)]
 pub struct Basic {
     pub hwnd: wintypes::HWND,
     pub title: ffi::String,
@@ -17,12 +18,14 @@ pub struct Uwp {
 }
 
 #[ffi_struct]
+#[derive(Eq, PartialEq)]
 pub struct Extended {
     pub process: crate::process::Basic,
     pub uwp: ffi::Option<Uwp>,
 }
 
 #[ffi_struct(drop)]
+#[derive(Eq, PartialEq)]
 pub struct Window {
     pub basic: Basic,
     pub extended: ffi::Option<Extended>,

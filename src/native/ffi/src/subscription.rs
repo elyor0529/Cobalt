@@ -8,6 +8,23 @@ pub struct Subscription<T> {
     pub on_complete: ptr::OutFn<()>,
 }
 
+impl<T> Subscription<T> {
+    #[inline]
+    pub fn next(&self, v: &mut T) {
+        self.on_next.call(v);
+    }
+
+    #[inline]
+    pub fn err(&self, v: &mut error::Error) {
+        self.on_error.call(v);
+    }
+
+    #[inline]
+    pub fn complete(&self) {
+        self.on_complete.call(&mut ());
+    }
+}
+
 #[macro_export]
 macro_rules! next {
     ($sub: expr, $e: expr) => {
