@@ -1,43 +1,49 @@
 use crate::*;
-use ffi::{self::*, windows::*};
-use proc_macros::*;
+use ffi::{windows::*, *};
+use lazy_static::*;
+use std::collections::HashMap;
+use std::sync::Mutex;
+
+#[derive(Debug, Eq, PartialEq, Ord, PartialOrd, Hash, Copy, Clone)]
+pub struct WinHandle(pub wintypes::HWND);
+unsafe impl Send for WinHandle {}
+unsafe impl Sync for WinHandle {}
 
 #[repr(C)]
 #[derive(Debug)]
 pub struct WindowClosed<'a> {
-    pub hwnd: ffi::Ptr<wintypes::HWND>,
-    pub hook: ffi::Ptr<wintypes::HWINEVENTHOOK>,
-    pub sub: &'a ffi::Subscription<()>,
+    pub hwnd: WinHandle,
+    pub hook: WinEventHook,
+    pub sub: &'a mut ffi::Subscription<()>,
 }
 
-#[watcher_impl]
-impl<'a> TransientWatcher<'a, ffi::Ptr<wintypes::HWND>, ()> for WindowClosed<'a> {
-    fn begin(win: ffi::Ptr<wintypes::HWND>, sub: &'a ffi::Subscription<()>) -> Self {
-        let (pid, tid) = crate::window::pid_tid(win.0);
-        let hook = unsafe {
-            winuser::SetWinEventHook(
-                winuser::EVENT_OBJECT_DESTROY,
-                winuser::EVENT_OBJECT_DESTROY,
-                ptr::null_mut(),
-                Some(WindowClosed::handler),
-                pid,
-                tid,
-                winuser::WINEVENT_OUTOFCONTEXT,
-            )
-        };
-        WindowClosed {
-            hwnd: win,
-            sub,
-            hook: ffi::Ptr(hook),
-        }
+impl<'a> Watcher<'a, (), WinHandle> for WindowClosed<'a> {
+    fn new(sub: &'a mut ffi::Subscription<()>, hwnd: WinHandle) -> ffi::Result<Self> {
+        let (pid, tid) = window::Window::pid_tid(hwnd.0)?;
+
+        let hook = WinEventHook::new(
+            EventRange::Single(WinEvent::ObjectDestroyed),
+            EventLocality::ProcessThread { pid, tid },
+            Some(WindowClosed::handler),
+        )?;
+
+        ffi::Result::Ok(WindowClosed { hwnd, hook, sub })
     }
 
-    fn end(self) {
-        completed!(self.sub);
-        unsafe {
-            winuser::UnhookWinEvent(self.hook.0);
-        }
+    fn subscription(&self) -> &Subscription<()> {
+        self.sub
     }
+}
+
+impl<'a> Drop for WindowClosed<'a> {
+    fn drop(&mut self) {
+        self.subscription().complete();
+    }
+}
+
+lazy_static! {
+    static ref WINDOW_CLOSED_GLOBALS: Mutex<HashMap<WinHandle, &'static WindowClosed<'static>>> =
+        Mutex::new(HashMap::new());
 }
 
 impl<'a> WindowClosed<'a> {
@@ -53,14 +59,36 @@ impl<'a> WindowClosed<'a> {
         if id_object != winuser::OBJID_WINDOW || id_child != 0 {
             return;
         }
-        let mut globals = transient_globals!(WindowClosed);
-        let key = &ffi::Ptr(hwnd);
-        let closed = globals.get(key);
-        if let Some(c) = &closed {
-            next!(c.sub, &());
-            completed!(c.sub);
-            winuser::UnhookWinEvent(c.hook.0);
-            globals.remove(key);
+        if let Some(c) = WINDOW_CLOSED_GLOBALS
+            .lock()
+            .unwrap()
+            .remove(&WinHandle(hwnd))
+        {
+            c.sub.next(&mut ());
+            drop(c);
+        } else {
         }
     }
+}
+
+#[no_mangle]
+pub unsafe fn window_closed_watcher_begin(
+    watcher: &'static mut MaybeUninit<WindowClosed<'static>>,
+    hwnd: WinHandle,
+    sub: &'static mut ffi::Subscription<()>,
+) -> ffi::Status {
+    match WindowClosed::new(sub, hwnd) {
+        Ok(res) => {
+            let w = watcher.write(res);
+            WINDOW_CLOSED_GLOBALS.lock().unwrap().insert(w.hwnd, w);
+            ffi::Status::Success
+        }
+        Err(e) => e.into(),
+    }
+}
+
+#[no_mangle]
+pub unsafe fn window_closed_watcher_end(watcher: &mut ffi::ManuallyDrop<WindowClosed>) {
+    WINDOW_CLOSED_GLOBALS.lock().unwrap().remove(&watcher.hwnd);
+    ffi::ManuallyDrop::drop(watcher);
 }

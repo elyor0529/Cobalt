@@ -1,11 +1,9 @@
-use ffi::*;
-use proc_macros::*;
-use quote::*;
-use syn::*;
-
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use ffi::*;
+    use proc_macros::*;
+    use quote::*;
+    use syn::*;
 
     #[ffi_struct]
     pub struct TestStruct(());
@@ -28,7 +26,7 @@ mod tests {
 
         // NOTE don't elide lifetimes here! Needs to be explicit so that we can capture
         #[ffi_fn]
-        pub fn refs2<'a>(&'a mut self, mew: &mut TestStruct) -> Result<&'a mut TestStruct> {
+        pub fn refs2<'a>(&'a mut self, _mew: &mut TestStruct) -> Result<&'a mut TestStruct> {
             Ok(self)
         }
     }

@@ -2,29 +2,25 @@ use ffi::windows::*;
 use ffi::*;
 use proc_macros::*;
 
-// pub mod exited;
+pub mod exited;
 
 #[ffi_struct]
-#[derive(Eq, PartialEq)]
 pub struct Basic {
     pub id: u32,
 }
 
 #[ffi_struct]
-#[derive(Eq, PartialEq)]
 pub struct Extended {
     pub handle: ProcessHandle,
 }
 
 #[ffi_struct]
-#[derive(Eq, PartialEq)]
 pub struct Identification {
     pub path: ffi::String,
     pub cmd_line: ffi::String,
 }
 
 #[ffi_struct]
-#[derive(Eq, PartialEq)]
 pub struct FileInfo {
     pub name: ffi::String,
     pub description: ffi::String,

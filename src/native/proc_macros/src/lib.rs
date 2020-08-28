@@ -19,7 +19,9 @@ pub fn ffi_struct(attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut structx = parse_macro_input!(item as ItemStruct);
 
     structx.attrs.push(parse_quote! { #[repr(C)] });
-    structx.attrs.push(parse_quote! { #[derive(Debug)] });
+    structx
+        .attrs
+        .push(parse_quote! { #[derive(Debug, Eq, PartialEq, Ord, PartialOrd)] });
 
     let self_ty = &structx.ident;
     let self_ty_name = quote!( #self_ty ).to_string();

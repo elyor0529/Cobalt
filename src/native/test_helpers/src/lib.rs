@@ -4,13 +4,14 @@
 mod event_loop;
 mod macro_parts;
 mod process;
+mod window_closed;
 
 #[cfg(test)]
 mod tests {
     use crate::event_loop::EventLoop;
     use crate::process::Process;
     use engine::window::foreground::*;
-    use ffi::{ManuallyDrop, Out};
+    use ffi::ManuallyDrop;
     use std::sync::{Arc, Mutex};
     use std::time::Duration;
 
@@ -179,7 +180,7 @@ mod tests {
                     x.cancel();
                     break;
                 }
-                Err(e) => (),
+                Err(_) => (),
             }
         }
         wa.join().expect("cannot join??")

@@ -5,6 +5,8 @@ use crate::*;
 pub struct WinEventHook {
     hook: wintypes::HWINEVENTHOOK,
 }
+unsafe impl Send for WinEventHook {}
+unsafe impl Sync for WinEventHook {}
 
 #[repr(u32)]
 #[derive(Clone, Copy)]
