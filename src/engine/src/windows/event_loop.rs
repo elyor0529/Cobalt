@@ -1,5 +1,4 @@
-use winapi::um::*;
-use std::*;
+use crate::windows::*;
 use std::task::*;
 use std::future::*;
 
@@ -16,8 +15,11 @@ impl EventLoop {
 impl Future for EventLoop {
     type Output = usize;
     fn poll(mut self: std::pin::Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<<Self as Future>::Output> {
-        while unsafe { winuser::PeekMessageW(&mut self.msg, ptr::null_mut(), 0, 0, winuser::PM_REMOVE) }
-            != 0
+        while unsafe {
+            winuser::PeekMessageW(
+                &mut self.msg,
+                ptr::null_mut(), 0, 0,
+                winuser::PM_REMOVE) } != 0
         {
             if self.msg.message == winuser::WM_QUIT {
                 return Poll::Ready(self.msg.wParam);
@@ -25,7 +27,7 @@ impl Future for EventLoop {
             unsafe { winuser::TranslateMessage(&mut self.msg as *mut _) };
             unsafe { winuser::DispatchMessageW(&mut self.msg as *mut _) };
         }
-        cx.waker().wake_by_ref(); // loop
+        cx.waker().wake_by_ref(); // yield to scheduler
         Poll::Pending
     }
 }
